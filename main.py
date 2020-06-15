@@ -42,8 +42,9 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
-def TrainNetworkMultiprocess(network,dataset):
+def TrainNetworkMultiprocess(network,dataset,shared_array,index):
     network.train(dataset)
+    shared_array[index] = network.accuracy
 def train_networks(networks, dataset):
     """Train each network.
 
@@ -52,22 +53,28 @@ def train_networks(networks, dataset):
         dataset (str): Dataset to use for training/evaluating
     """
     pbar = tqdm(total=len(networks))
+    accuracy_Arr = multiprocessing.Array(0 for _ in range(len(networks)))
     processes = []
     activated_network = set()
-    for network in networks:
+    for index,network in enumerate(networks):
         # for single process
         #network.train(dataset)
         #pbar.update(1)
         curr_net_param = network.network_params.items()
         tuple_curr_net_param  = tuple(curr_net_param)
         if tuple_curr_net_param in activated_network:
-            print(f"$$ SKIP try to run an network that has already run {curr_net_param}")
+            header_note = "#"*80
+            print(header_note)
+            print(header_note)
+            print(f"#### SKIP try to run an network that has already run {curr_net_param}")
+            print(header_note)
+            print(header_note)
             pbar.update(1)
             continue
 
         activated_network.add(tuple_curr_net_param)
         p = multiprocessing.Process(target=TrainNetworkMultiprocess,
-                                    args=(network,dataset))
+                                    args=(network,dataset,accuracy_Arr,index))
         processes.append(p)
         p.start()
 
@@ -76,6 +83,10 @@ def train_networks(networks, dataset):
         pbar.update(1)
 
     pbar.close()
+
+    # Update the accuracy, from the shared memory array
+    for c_index, network in enumerate(networks):
+        network.accuracy = accuracy_Arr[c_index]
 
 def get_max_accuracy(networks):
     return max(x.accuracy for x in networks)
@@ -96,7 +107,7 @@ def get_average_accuracy(networks):
         if network.accuracy != 0:
             counted_net+=1
         total_accuracy += network.accuracy
-
+    print(f"get_average_accuracy sum: {total_accuracy}")
     return total_accuracy / counted_net
 
 def generate(generations, population, nn_param_choices, dataset_dict):
@@ -168,13 +179,13 @@ def print_networks(networks):
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
     generations = 6  # Number of times to evole the population.
-    population = 5  # Number of networks in each generation.
+    population = 3  # Number of networks in each generation.
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         'input_shape':[120],
         #'batch_size':[32, 64, 128, 256, 512, 1024],
-        'batch_size': [16,32,64],
+        'batch_size': [16,32,64,128],
         #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
          'hidden_layer_sizes': [16,32,64],
         'max_iter' :[300],
