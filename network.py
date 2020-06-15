@@ -61,14 +61,13 @@ class Network():
                 best_fbeta_score_valid = curr_validation_beta_score
                 best_fbeta_score_train = curr_train_beta_score
                 self.best_threshold = threshold
-            else:
-                header_note = "#"*80
+
+                header_note = "#" * 80
                 print(header_note)
-                print(f'####Stop improve thres:{self.best_threshold} With:')
+                print(f'#### improve thres:{self.best_threshold} With:')
                 print(f'validation f-beta-{beta} score {best_fbeta_score_valid}')
                 print(f'train f-beta-{beta} score {best_fbeta_score_train}')
                 print(header_note)
-                break
 
     def train_net(self, dataset_dict):
         self.compile_model(False)
