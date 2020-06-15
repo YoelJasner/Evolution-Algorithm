@@ -8,6 +8,7 @@ import pandas as pd
 import multiprocessing
 
 FILE_NAME = "203768460_204380992_9.txt"
+
 # Setup logging.
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -52,12 +53,19 @@ def train_networks(networks, dataset):
     """
     pbar = tqdm(total=len(networks))
     processes = []
-
+    activated_network = set()
     for network in networks:
         # for single process
         #network.train(dataset)
         #pbar.update(1)
+        curr_net_param = network.network_params.items()
+        tuple_curr_net_param  = tuple(curr_net_param)
+        if tuple_curr_net_param in activated_network:
+            print(f"$$ SKIP try to run an network that has already run {curr_net_param}")
+            pbar.update(1)
+            continue
 
+        activated_network.add(tuple_curr_net_param)
         p = multiprocessing.Process(target=TrainNetworkMultiprocess,
                                     args=(network,dataset))
         processes.append(p)
@@ -83,10 +91,13 @@ def get_average_accuracy(networks):
 
     """
     total_accuracy = 0
+    counted_net =0
     for network in networks:
+        if network.accuracy != 0:
+            counted_net+=1
         total_accuracy += network.accuracy
 
-    return total_accuracy / len(networks)
+    return total_accuracy / counted_net
 
 def generate(generations, population, nn_param_choices, dataset_dict):
     """Generate a network with the genetic algorithm.
@@ -156,7 +167,7 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 10  # Number of times to evole the population.
+    generations = 6  # Number of times to evole the population.
     population = 5  # Number of networks in each generation.
 
     nn_param_choices = {

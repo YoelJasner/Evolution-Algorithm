@@ -42,13 +42,12 @@ class Network():
         logging.info("Network threshold: %.2f%%" % (self.best_threshold))
         logging.info("Network accuracy: %.2f%%" % (self.accuracy * 100))
 
-
     def update_best_threshold(self, y_val_proba, y_validation,y_train_proba, y_train):
         self.best_threshold = 0.5
         best_fbeta_score_valid = 0
         best_fbeta_score_train = 0
         beta = 0.25
-        for threshold in np.arange(0.5, 0.8, 0.005):
+        for threshold in np.arange(0.5, 0.8, 0.0025):
             y_val_pred = np.where(y_val_proba[:, 1] > threshold, 1, 0)
             y_train_pred = np.where(y_train_proba[:, 1] > threshold, 1, 0)
 
@@ -57,11 +56,17 @@ class Network():
 
             if curr_validation_beta_score >= best_fbeta_score_valid and \
                 curr_train_beta_score >= best_fbeta_score_train:
-                print(f'####improve Validation thres:{threshold} f-beta-{beta} score {curr_validation_beta_score}')
+
                 best_fbeta_score_valid = curr_validation_beta_score
                 best_fbeta_score_train = curr_train_beta_score
                 self.best_threshold = threshold
             else:
+                header_note = "#"*80
+                print(header_note)
+                print(f'####Stop improve thres:{self.best_threshold} With:')
+                print(f'validation f-beta-{beta} score {best_fbeta_score_valid}')
+                print(f'train f-beta-{beta} score {best_fbeta_score_train}')
+                print(header_note)
                 break
 
     def train_net(self, dataset_dict):
@@ -102,7 +107,10 @@ class Network():
         return validation_beta_score
 
     def train_final_net(self, dataset_dict):
+        str_header = "#"*80
+        print(str_header)
         print(f"best Network.. train_final_net  with param{self.network_params}")
+        print(str_header)
         self.compile_model(bFinal=True)
         self.model.fit(dataset_dict["X_train"],
                        dataset_dict["y_train"])
@@ -117,7 +125,8 @@ class Network():
         y_train_pred = np.where(y_train_proba[:, 1]
                                 > self.best_threshold, 1, 0)
         y_val_pred = np.where(y_val_proba[:, 1] > self.best_threshold, 1, 0)
-
+        print(str_header)
+        print(str_header)
         print('Train accuracy', accuracy_score(dataset_dict["y_train"], y_train_pred))
         print('Validation accuracy', accuracy_score(dataset_dict["y_validation"], y_val_pred))
 
@@ -130,7 +139,8 @@ class Network():
         print('Train f-beta score', fbeta_score(dataset_dict["y_train"], y_train_pred, beta=0.25))
         validation_beta_score = fbeta_score(dataset_dict["y_validation"], y_val_pred, beta=0.25)
         print(f'Validation f-beta score {validation_beta_score}')
-
+        print(str_header)
+        print(str_header)
         return validation_beta_score
 
     def WriteModelToFile(self):
