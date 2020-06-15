@@ -122,7 +122,7 @@ def generate(generations, population, nn_param_choices, dataset_dict):
     if i == generations - 1:
         networks[0].train_final_net(dataset_dict)
         networks[0].WriteModelToFile()
-        networks[0].WriteResToFile(dataset_dict,"203768460_204380992_4.txt")
+        networks[0].WriteResToFile(dataset_dict,"203768460_204380992_7.txt")
 
 
 def print_networks(networks):
