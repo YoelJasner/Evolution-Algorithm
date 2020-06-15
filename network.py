@@ -45,8 +45,8 @@ class Network():
     def update_best_threshold(self, y_val_proba, y_validation):
         self.best_threshold = 0
         best_fbeta_score = 0
-        beta = 0.25
-        for threshold in np.arange(0.5, 0.7, 0.005):
+        beta = 0.125
+        for threshold in np.arange(0.5, 0.8, 0.03):
             y_val_pred = np.where(y_val_proba[:, 1] > threshold, 1, 0)
 
             validation_beta_score = fbeta_score(y_validation, y_val_pred, beta=beta)
