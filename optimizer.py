@@ -14,7 +14,7 @@ class Optimizer():
     """Class that implements genetic algorithm for MLP optimization."""
 
     def __init__(self, nn_param_choices, retain=0.1,
-                 random_select=0.1, mutate_chance=0.2):
+                 random_select=0.01, mutate_chance=0.2):
         """Create an optimizer.
 
         Args:
@@ -28,7 +28,7 @@ class Optimizer():
 
         """
         self.mutate_chance = mutate_chance
-        self.random_select = random_select
+        self.random_select = 0#random_select
         self.retain = retain
         self.nn_param_choices = nn_param_choices
 
@@ -161,7 +161,9 @@ class Optimizer():
             female = random.randint(0, parents_length-1)
 
             # Assuming they aren't the same network...
-            if male != female:
+            if male == female:
+                print(f"male==female parents_length-1={parents_length-1}")
+            else:
                 male = parents[male]
                 female = parents[female]
 

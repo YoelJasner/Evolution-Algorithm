@@ -140,8 +140,8 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 4  # Number of times to evole the population.
-    population = 6  # Number of networks in each generation.
+    generations = 2  # Number of times to evole the population.
+    population = 10  # Number of networks in each generation.
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name,valid_file_name,test_file_name)
 
@@ -156,12 +156,13 @@ def main(train_file_name,valid_file_name,test_file_name):
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         'input_shape':[120],
-        'batch_size':[32,64,128,256],
-        'max_iter' :[200],
+        #'batch_size':[32,64,128,256],
+        'batch_size': [32, 64, 16],
+        'max_iter' :[100],
         #'final_max_iter': [300,400,200,250],
         'final_max_iter': [300],
         #'hidden_layer_sizes': [64,128,256,384,512,1024,4096],
-        'hidden_layer_sizes': [64,128,32],
+        'hidden_layer_sizes': [16,32],
     }
 
     logging.info("***Evolving %d generations with population %d***" %
