@@ -116,7 +116,7 @@ def generate(generations, population, nn_param_choices, dataset_dict):
     networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
 
     # Print out the top 5 networks.
-    print_networks(networks[:5])
+    print_networks(networks[:3])
 
     # Write the network to file
     if i == generations - 1:
@@ -138,8 +138,8 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 1  # Number of times to evole the population.
-    population = 1  # Number of networks in each generation.
+    generations = 3  # Number of times to evole the population.
+    population = 6  # Number of networks in each generation.
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name,valid_file_name,test_file_name)
 
@@ -154,12 +154,11 @@ def main(train_file_name,valid_file_name,test_file_name):
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         'input_shape':[120],
-        'nb_classes':[1],
-        'batch_size':[64],
-        'max_iter' :[1],
-        'final_max_iter': [1],
-        # 'hidden_layer_sizes': [64,128,256,384,512,1024,4096],
-        'hidden_layer_sizes': [64],
+        'batch_size':[32,64,128,256],
+        'max_iter' :[200,225,250],
+        'final_max_iter': [300],
+        'threshold' : range(0.5,0.7,0.03),
+        'hidden_layer_sizes': [64,128,256,384,512,1024,4096],
 
     }
 
