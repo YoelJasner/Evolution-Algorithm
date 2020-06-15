@@ -5,7 +5,7 @@ from tqdm import tqdm
 import sys
 from sklearn import preprocessing
 import pandas as pd
-FILE_NAME = "203768460_204380992_8.txt"
+FILE_NAME = "203768460_204380992_9.txt"
 # Setup logging.
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -156,12 +156,12 @@ def main(train_file_name,valid_file_name,test_file_name):
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         'input_shape':[120],
-        #'batch_size':[32,64,128,256,512,1024],
-        'batch_size': [32],
-        'max_iter' :[100],
+        'batch_size':[32, 64, 128, 256, 512, 1024],
+        #'batch_size': [32],
+        'max_iter' :[200],
         'final_max_iter': [500],
-        #'hidden_layer_sizes': [64,128,256,384,512,1024,2048,4096],
-        'hidden_layer_sizes': [16],
+        'hidden_layer_sizes': [64,128,256,384,512,1024,2048,4096],
+        #'hidden_layer_sizes': [16],
     }
 
     logging.info("***Evolving %d generations with population %d***" %

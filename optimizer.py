@@ -157,6 +157,15 @@ class Optimizer():
         children = []
         # Add children, which are bred from two remaining networks.
         while len(children) < desired_length:
+            # In case that the parents array is empty..
+            if parents_length == 0:
+                network = Network(self.nn_param_choices)
+                network.create_random()
+
+                # Add the network to our population.
+                children.append(network)
+                continue
+
             male = random.randint(0, parents_length-1)
             female = random.randint(0, parents_length-1)
 
