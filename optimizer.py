@@ -13,8 +13,8 @@ from network import Network
 class Optimizer():
     """Class that implements genetic algorithm for MLP optimization."""
 
-    def __init__(self, nn_param_choices, retain=0.2,
-                 random_select=0.01, mutate_chance=0.2):
+    def __init__(self, nn_param_choices, retain=0.3,
+                 random_select=0.01, mutate_chance=0.1):
         """Create an optimizer.
 
         Args:
@@ -120,7 +120,7 @@ class Optimizer():
         mutation = random.choice(list(self.nn_param_choices.keys()))
 
         # Mutate one of the params.
-        network.network[mutation] = random.choice(self.nn_param_choices[mutation])
+        network.network_params[mutation] = random.choice(self.nn_param_choices[mutation])
 
         return network
 

@@ -5,7 +5,7 @@ from tqdm import tqdm
 import sys
 from sklearn import preprocessing
 import pandas as pd
-
+FILE_NAME = "203768460_204380992_8.txt"
 # Setup logging.
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -124,7 +124,7 @@ def generate(generations, population, nn_param_choices, dataset_dict):
     if i == generations - 1:
         networks[0].train_final_net(dataset_dict)
         networks[0].WriteModelToFile()
-        networks[0].WriteResToFile(dataset_dict,"203768460_204380992_7.txt")
+        networks[0].WriteResToFile(dataset_dict,FILE_NAME)
 
 
 def print_networks(networks):
@@ -140,8 +140,8 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 2  # Number of times to evole the population.
-    population = 10  # Number of networks in each generation.
+    generations = 10  # Number of times to evole the population.
+    population = 4  # Number of networks in each generation.
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name,valid_file_name,test_file_name)
 
@@ -156,13 +156,12 @@ def main(train_file_name,valid_file_name,test_file_name):
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         'input_shape':[120],
-        #'batch_size':[32,64,128,256],
-        'batch_size': [32, 64, 16],
+        #'batch_size':[32,64,128,256,512,1024],
+        'batch_size': [32],
         'max_iter' :[100],
-        #'final_max_iter': [300,400,200,250],
-        'final_max_iter': [300],
-        #'hidden_layer_sizes': [64,128,256,384,512,1024,4096],
-        'hidden_layer_sizes': [16,32],
+        'final_max_iter': [500],
+        #'hidden_layer_sizes': [64,128,256,384,512,1024,2048,4096],
+        'hidden_layer_sizes': [16],
     }
 
     logging.info("***Evolving %d generations with population %d***" %
