@@ -182,8 +182,8 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 2  # Number of times to evole the population.
-    population = 7  # Number of networks in each generation.
+    generations = 2 #14  # Number of times to evole the population.
+    population = 3  #8 Number of networks in each generation.
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
