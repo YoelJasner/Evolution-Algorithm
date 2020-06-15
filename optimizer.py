@@ -162,7 +162,9 @@ class Optimizer():
 
             # Assuming they aren't the same network...
             if male == female and parents_length-1 == 0:
-                print(f"male==female parents_length-1={parents_length-1}")
+                print(f"male==female only one parent in array")
+                children.append(parents[male])
+
             else:
                 male = parents[male]
                 female = parents[female]
@@ -176,7 +178,6 @@ class Optimizer():
                     if len(children) < desired_length:
                         children.append(baby)
 
-        print("evolve7")
         parents.extend(children)
 
         return parents
