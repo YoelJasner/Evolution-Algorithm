@@ -86,17 +86,17 @@ class Optimizer():
         children = []
         for _ in range(2):
 
-            child = {}
+            child_params = {}
 
             # Loop through the parameters and pick params for the kid.
             for param in self.nn_param_choices:
-                child[param] = random.choice(
-                    [mother.network[param], father.network[param]]
+                child_params[param] = random.choice(
+                    [mother.network_params[param], father.network_params[param]]
                 )
 
             # Now create a network object.
             network = Network(self.nn_param_choices)
-            network.create_set(child)
+            network.create_set(child_params)
 
             # Randomly mutate some of the children.
             if self.mutate_chance < random.random():
