@@ -5,7 +5,9 @@ from tqdm import tqdm
 import sys
 from sklearn import preprocessing
 import pandas as pd
-FILE_NAME = "203768460_204380992_10.txt"
+import multiprocessing
+
+FILE_NAME = "203768460_204380992_9.txt"
 # Setup logging.
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -39,7 +41,8 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
-
+def TrainNetworkMultiprocess(network,dataset):
+    network.train(dataset)
 def train_networks(networks, dataset):
     """Train each network.
 
@@ -48,9 +51,22 @@ def train_networks(networks, dataset):
         dataset (str): Dataset to use for training/evaluating
     """
     pbar = tqdm(total=len(networks))
+    processes = []
+
     for network in networks:
-        network.train(dataset)
+        # for single process
+        #network.train(dataset)
+        #pbar.update(1)
+
+        p = multiprocessing.Process(target=TrainNetworkMultiprocess,
+                                    args=(network,dataset))
+        processes.append(p)
+        p.start()
+
+    for process in processes:
+        process.join()
         pbar.update(1)
+
     pbar.close()
 
 def get_max_accuracy(networks):
@@ -141,31 +157,32 @@ def print_networks(networks):
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
     generations = 10  # Number of times to evole the population.
-    population = 4  # Number of networks in each generation.
-    X_train, y_train, X_validation, y_validation, X_test = \
-        load_process_data(train_file_name,valid_file_name,test_file_name)
-
-    dataset_dict = { "X_train":X_train,
-                        "y_train":y_train,
-                        "X_validation":X_validation,
-                        "y_validation":y_validation,
-                        "X_test":X_test,
-                        }
-
+    population = 5  # Number of networks in each generation.
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         'input_shape':[120],
-        'batch_size':[32, 64, 128, 256, 512, 1024],
-        #'batch_size': [32],
-        'max_iter' :[200],
+        #'batch_size':[32, 64, 128, 256, 512, 1024],
+        'batch_size': [16,32,64],
+        #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
+         'hidden_layer_sizes': [16,32,64],
+        'max_iter' :[300],
         'final_max_iter': [500],
-        'hidden_layer_sizes': [64,128,256,384,512,1024,2048,4096],
-        #'hidden_layer_sizes': [16],
+
     }
 
     logging.info("***Evolving %d generations with population %d***" %
                  (generations, population))
+
+    X_train, y_train, X_validation, y_validation, X_test = \
+        load_process_data(train_file_name, valid_file_name, test_file_name)
+
+    dataset_dict = {"X_train": X_train,
+                    "y_train": y_train,
+                    "X_validation": X_validation,
+                    "y_validation": y_validation,
+                    "X_test": X_test,
+                    }
 
     generate(generations, population, nn_param_choices, dataset_dict)
 

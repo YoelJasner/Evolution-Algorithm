@@ -39,22 +39,30 @@ class Network():
 
     def print_network(self):
         logging.info(self.network_params)
+        logging.info("Network threshold: %.2f%%" % (self.best_threshold))
         logging.info("Network accuracy: %.2f%%" % (self.accuracy * 100))
 
 
-    def update_best_threshold(self, y_val_proba, y_validation):
-        self.best_threshold = 0
-        best_fbeta_score = 0
+    def update_best_threshold(self, y_val_proba, y_validation,y_train_proba, y_train):
+        self.best_threshold = 0.5
+        best_fbeta_score_valid = 0
+        best_fbeta_score_train = 0
         beta = 0.25
-        for threshold in np.arange(0.5, 0.8, 0.03):
+        for threshold in np.arange(0.5, 0.8, 0.005):
             y_val_pred = np.where(y_val_proba[:, 1] > threshold, 1, 0)
+            y_train_pred = np.where(y_train_proba[:, 1] > threshold, 1, 0)
 
-            validation_beta_score = fbeta_score(y_validation, y_val_pred, beta=beta)
+            curr_validation_beta_score = fbeta_score(y_validation, y_val_pred, beta=beta)
+            curr_train_beta_score = fbeta_score(y_train, y_train_pred, beta=beta)
 
-            if validation_beta_score > best_fbeta_score:
-                print(f'####improve Validation thres:{threshold} f-bete-{beta} score {validation_beta_score}')
-                best_fbeta_score = validation_beta_score
+            if curr_validation_beta_score >= best_fbeta_score_valid and \
+                curr_train_beta_score >= best_fbeta_score_train:
+                print(f'####improve Validation thres:{threshold} f-beta-{beta} score {curr_validation_beta_score}')
+                best_fbeta_score_valid = curr_validation_beta_score
+                best_fbeta_score_train = curr_train_beta_score
                 self.best_threshold = threshold
+            else:
+                break
 
     def train_net(self, dataset_dict):
         self.compile_model(False)
@@ -67,11 +75,14 @@ class Network():
                   dataset_dict["y_train"][rows_index])
 
         y_val_proba = self.model.predict_proba(dataset_dict["X_validation"])
+        y_train_proba = self.model.predict_proba(dataset_dict["X_train"][rows_index,:])
         self.update_best_threshold(y_val_proba,
-                                   dataset_dict["y_validation"])
+                                   dataset_dict["y_validation"],
+                                   y_train_proba,
+                                   dataset_dict["y_train"][rows_index])
 
 
-        y_train_pred = np.where(self.model.predict_proba(dataset_dict["X_train"][rows_index,:])[:, 1]
+        y_train_pred = np.where(y_train_proba[:, 1]
                                  > self.best_threshold, 1, 0)
         y_val_pred = np.where(y_val_proba[:, 1] > self.best_threshold, 1, 0)
 
@@ -97,10 +108,13 @@ class Network():
                        dataset_dict["y_train"])
 
         y_val_proba = self.model.predict_proba(dataset_dict["X_validation"])
+        y_train_proba = self.model.predict_proba(dataset_dict["X_train"])
         self.update_best_threshold(y_val_proba,
-                                   dataset_dict["y_validation"])
+                                   dataset_dict["y_validation"],
+                                   y_train_proba,
+                                   dataset_dict["y_train"])
 
-        y_train_pred = np.where(self.model.predict_proba(dataset_dict["X_train"])[:, 1]
+        y_train_pred = np.where(y_train_proba[:, 1]
                                 > self.best_threshold, 1, 0)
         y_val_pred = np.where(y_val_proba[:, 1] > self.best_threshold, 1, 0)
 
