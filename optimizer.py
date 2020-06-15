@@ -13,7 +13,7 @@ from network import Network
 class Optimizer():
     """Class that implements genetic algorithm for MLP optimization."""
 
-    def __init__(self, nn_param_choices, retain=0.2,
+    def __init__(self, nn_param_choices, retain=0.1,
                  random_select=0.1, mutate_chance=0.2):
         """Create an optimizer.
 
@@ -135,32 +135,28 @@ class Optimizer():
 
         """
         # Get scores for each network.
-        print("evolve1")
         graded = [(self.fitness(network), network) for network in pop]
-        print("evolve2")
+
         # Sort on the scores.
         graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
-        print("evolve3")
+
         # Get the number we want to keep for the next gen.
         retain_length = int(len(graded)*self.retain)
 
         # The parents are every network we want to keep.
         parents = graded[:retain_length]
-        print("evolve4")
+
         # For those we aren't keeping, randomly keep some anyway.
         for individual in graded[retain_length:]:
             if self.random_select > random.random():
                 parents.append(individual)
-        print("evolve5")
+
         # Now find out how many spots we have left to fill.
         parents_length = len(parents)
         desired_length = len(pop) - parents_length
         children = []
-        print("evolve6")
         # Add children, which are bred from two remaining networks.
         while len(children) < desired_length:
-
-            # Get a random mom and dad.
             male = random.randint(0, parents_length-1)
             female = random.randint(0, parents_length-1)
 

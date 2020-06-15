@@ -103,6 +103,8 @@ def generate(generations, population, nn_param_choices, dataset_dict):
         logging.info("Generation max: %.2f%%" % (max_accuracy * 100))
 
         logging.info('-'*80)
+        print("***generation %d of %d*** score" %
+              (i + 1, generations))
         print("Generation average: %.2f%%" % (average_accuracy * 100))
         print("Generation max: %.2f%%" % (max_accuracy * 100))
         print('-' * 80)
@@ -139,7 +141,7 @@ def print_networks(networks):
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
     generations = 4  # Number of times to evole the population.
-    population = 3  # Number of networks in each generation.
+    population = 6  # Number of networks in each generation.
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name,valid_file_name,test_file_name)
 
@@ -156,8 +158,10 @@ def main(train_file_name,valid_file_name,test_file_name):
         'input_shape':[120],
         'batch_size':[32,64,128,256],
         'max_iter' :[200],
+        #'final_max_iter': [300,400,200,250],
         'final_max_iter': [300],
-        'hidden_layer_sizes': [64,128,256,384,512,1024,4096],
+        #'hidden_layer_sizes': [64,128,256,384,512,1024,4096],
+        'hidden_layer_sizes': [64,128,32],
     }
 
     logging.info("***Evolving %d generations with population %d***" %
