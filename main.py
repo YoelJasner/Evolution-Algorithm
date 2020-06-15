@@ -6,6 +6,7 @@ import sys
 from sklearn import preprocessing
 import pandas as pd
 import multiprocessing
+from ctypes import  c_double
 
 FILE_NAME = "203768460_204380992_9.txt"
 
@@ -53,7 +54,7 @@ def train_networks(networks, dataset):
         dataset (str): Dataset to use for training/evaluating
     """
     pbar = tqdm(total=len(networks))
-    accuracy_Arr = multiprocessing.Array(0, range(len(networks)))
+    accuracy_Arr = multiprocessing.Raw(c_double, len(networks))
     processes = []
     activated_network = set()
     for index,network in enumerate(networks):
@@ -86,7 +87,7 @@ def train_networks(networks, dataset):
 
     # Update the accuracy, from the shared memory array
     for c_index, network in enumerate(networks):
-        network.accuracy = accuracy_Arr[c_index]
+        network.accuracy = float(accuracy_Arr[c_index])
 
 def get_max_accuracy(networks):
     return max(x.accuracy for x in networks)
