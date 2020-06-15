@@ -54,10 +54,13 @@ def train_networks(networks, dataset):
         dataset (str): Dataset to use for training/evaluating
     """
     pbar = tqdm(total=len(networks))
-    accuracy_Arr = multiprocessing.Raw(c_double, len(networks))
+    accuracy_Arr = multiprocessing.Array(c_double, len(networks))
+
+
     processes = []
     activated_network = set()
     for index,network in enumerate(networks):
+        accuracy_Arr[index] = 0
         # for single process
         #network.train(dataset)
         #pbar.update(1)
