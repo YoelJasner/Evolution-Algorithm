@@ -139,7 +139,7 @@ def print_networks(networks):
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
     generations = 3  # Number of times to evole the population.
-    population = 6  # Number of networks in each generation.
+    population = 5  # Number of networks in each generation.
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name,valid_file_name,test_file_name)
 
@@ -157,9 +157,7 @@ def main(train_file_name,valid_file_name,test_file_name):
         'batch_size':[32,64,128,256],
         'max_iter' :[200,225,250],
         'final_max_iter': [300],
-        'threshold' : range(0.5,0.7,0.03),
         'hidden_layer_sizes': [64,128,256,384,512,1024,4096],
-
     }
 
     logging.info("***Evolving %d generations with population %d***" %

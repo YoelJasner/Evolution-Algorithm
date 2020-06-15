@@ -20,7 +20,7 @@ class Network():
     def compile_model(self,bFinal=False):
         # Get our network parameters.
         max_iter = self.network_params['final_max_iter'] if bFinal else self.network_params['max_iter']
-        self.threshold = self.network_params["threshold"]
+        self.best_threshold = 0
         self.model = MLPClassifier(max_iter=max_iter,
                                    verbose=2,
                                     batch_size=self.network_params["batch_size"],
@@ -42,6 +42,20 @@ class Network():
         logging.info("Network accuracy: %.2f%%" % (self.accuracy * 100))
 
 
+    def update_best_threshold(self, y_val_proba, y_validation):
+        self.best_threshold = 0
+        best_fbeta_score = 0
+        beta = 0.25
+        for threshold in range(0.5, 0.7, 0.03):
+            y_val_pred = np.where(y_val_proba[:, 1] > threshold, 1, 0)
+
+            validation_beta_score = fbeta_score(y_validation, y_val_pred, beta=beta)
+
+            if validation_beta_score > best_fbeta_score:
+                print(f'####improve Validation thres:{threshold} f-bete-{beta} score {validation_beta_score}')
+                best_fbeta_score = validation_beta_score
+                self.best_threshold = threshold
+
     def train_net(self, dataset_dict):
         self.compile_model(False)
         num_of_rows = self.network_params["Network_train_sample_size"]
@@ -52,10 +66,14 @@ class Network():
         self.model.fit(dataset_dict["X_train"][rows_index,:],
                   dataset_dict["y_train"][rows_index])
 
+        y_val_proba = self.model.predict_proba(dataset_dict["X_validation"])
+        self.update_best_threshold(y_val_proba,
+                                   dataset_dict["y_validation"])
+
+
         y_train_pred = np.where(self.model.predict_proba(dataset_dict["X_train"][rows_index,:])[:, 1]
-                                > self.threshold, 1, 0)
-        y_val_pred = np.where(self.model.predict_proba(dataset_dict["X_validation"])[:, 1]
-                              > self.threshold, 1, 0)
+                                 > self.best_threshold, 1, 0)
+        y_val_pred = np.where(y_val_proba[:, 1] > self.best_threshold, 1, 0)
 
         print('Train accuracy', accuracy_score(dataset_dict["y_train"][rows_index], y_train_pred))
         print('Validation accuracy', accuracy_score(dataset_dict["y_validation"], y_val_pred))
@@ -78,11 +96,13 @@ class Network():
         self.model.fit(dataset_dict["X_train"],
                        dataset_dict["y_train"])
 
+        y_val_proba = self.model.predict_proba(dataset_dict["X_validation"])
+        self.update_best_threshold(y_val_proba,
+                                   dataset_dict["y_validation"])
 
         y_train_pred = np.where(self.model.predict_proba(dataset_dict["X_train"])[:, 1]
-                                > self.threshold, 1, 0)
-        y_val_pred = np.where(self.model.predict_proba(dataset_dict["X_validation"])[:, 1]
-                              > self.threshold, 1, 0)
+                                > self.best_threshold, 1, 0)
+        y_val_pred = np.where(y_val_proba[:, 1] > self.best_threshold, 1, 0)
 
         print('Train accuracy', accuracy_score(dataset_dict["y_train"], y_train_pred))
         print('Validation accuracy', accuracy_score(dataset_dict["y_validation"], y_val_pred))
@@ -118,5 +138,5 @@ class Network():
         print(f"Write tests results to File {file_name}..")
 
         y_test_pred = np.where(self.model.predict_proba(ds_class["X_test"])[:, 1]
-                               > self.threshold, 1, 0)
+                               > self.best_threshold, 1, 0)
         np.savetxt(file_name, y_test_pred.astype(int), fmt='%i', delimiter='\n')
