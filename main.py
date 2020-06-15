@@ -8,7 +8,7 @@ import pandas as pd
 import multiprocessing
 from ctypes import  c_double
 
-FILE_NAME = "203768460_204380992_9.txt"
+FILE_NAME = "203768460_204380992_10.txt"
 
 # Setup logging.
 logging.basicConfig(
@@ -160,7 +160,7 @@ def generate(generations, population, nn_param_choices, dataset_dict):
     networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
 
     # Print out the top 3 networks.
-    print_networks(networks[:3])
+    #print_networks(networks[:3])
 
     # Write the network to file
     if i == generations - 1:
@@ -182,8 +182,8 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 6  # Number of times to evole the population.
-    population = 3  # Number of networks in each generation.
+    generations = 2  # Number of times to evole the population.
+    population = 7  # Number of networks in each generation.
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
