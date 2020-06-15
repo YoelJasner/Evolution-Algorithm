@@ -16,11 +16,12 @@ class Network():
         self.nn_param_choices = nn_param_choices
         self.network_params = {}  # (dic): represents MLP network parameters
         self.model = None
+        self.best_threshold = 0.5
 
     def compile_model(self,bFinal=False):
         # Get our network parameters.
         max_iter = self.network_params['final_max_iter'] if bFinal else self.network_params['max_iter']
-        self.best_threshold = 0
+        self.best_threshold = 0.5
         self.model = MLPClassifier(max_iter=max_iter,
                                    verbose=2,
                                     batch_size=self.network_params["batch_size"],
@@ -141,6 +142,7 @@ class Network():
         print(f'Validation f-beta score {validation_beta_score}')
         print(str_header)
         print(str_header)
+        self.accuracy = validation_beta_score
         return validation_beta_score
 
     def WriteModelToFile(self):
