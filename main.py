@@ -53,7 +53,7 @@ def train_networks(networks, dataset):
         dataset (str): Dataset to use for training/evaluating
     """
     pbar = tqdm(total=len(networks))
-    accuracy_Arr = multiprocessing.Array(0 for _ in range(len(networks)))
+    accuracy_Arr = multiprocessing.Array(0, range(len(networks)))
     processes = []
     activated_network = set()
     for index,network in enumerate(networks):
@@ -107,7 +107,7 @@ def get_average_accuracy(networks):
         if network.accuracy != 0:
             counted_net+=1
         total_accuracy += network.accuracy
-    print(f"get_average_accuracy sum: {total_accuracy}")
+    #print(f"get_average_accuracy sum: {total_accuracy}")
     return total_accuracy / counted_net
 
 def generate(generations, population, nn_param_choices, dataset_dict):
