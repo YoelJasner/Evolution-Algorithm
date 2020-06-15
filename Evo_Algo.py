@@ -13,48 +13,49 @@ from keras.layers import Dense, Dropout, ReLU
 from keras.layers import LSTM
 from keras import backend as K
 from sklearn.ensemble import RandomForestClassifier
+from sklearn import svm
 import matplotlib.pyplot as plt
 import seaborn as sns
-plt.rcParams.update({'figure.figsize':(7,5), 'figure.dpi':100})
+
+plt.rcParams.update({'figure.figsize': (7, 5), 'figure.dpi': 100})
 
 
 class MV_LSTM(torch.nn.Module):
     '''
     LSTM architechture
     '''
-    def __init__(self,n_features,seq_length):
+
+    def __init__(self, n_features, seq_length):
         super(MV_LSTM, self).__init__()
         self.n_features = n_features
         self.seq_len = seq_length
-        self.n_hidden = 20 # number of hidden states
-        self.n_layers = 1 # number of LSTM layers (stacked)
+        self.n_hidden = 20  # number of hidden states
+        self.n_layers = 1  # number of LSTM layers (stacked)
 
-        self.l_lstm = torch.nn.LSTM(input_size = n_features,
-                                 hidden_size = self.n_hidden,
-                                 num_layers = self.n_layers,
-                                 batch_first = True)
+        self.l_lstm = torch.nn.LSTM(input_size=n_features,
+                                    hidden_size=self.n_hidden,
+                                    num_layers=self.n_layers,
+                                    batch_first=True)
         # according to pytorch docs LSTM output is
         # (batch_size,seq_len, num_directions * hidden_size)
         # when considering batch_first = True
-        self.l_linear = torch.nn.Linear(self.n_hidden*self.seq_len, 2)
-
+        self.l_linear = torch.nn.Linear(self.n_hidden * self.seq_len, 2)
 
     def init_hidden(self, batch_size):
         # even with batch_first = True this remains same as docs
-        hidden_state = torch.zeros(self.n_layers,batch_size,self.n_hidden)
-        cell_state = torch.zeros(self.n_layers,batch_size,self.n_hidden)
+        hidden_state = torch.zeros(self.n_layers, batch_size, self.n_hidden)
+        cell_state = torch.zeros(self.n_layers, batch_size, self.n_hidden)
         self.hidden = (hidden_state, cell_state)
-
 
     def forward(self, x):
         batch_size, seq_len, _ = x.size()
 
-        lstm_out, self.hidden = self.l_lstm(x,self.hidden)
+        lstm_out, self.hidden = self.l_lstm(x, self.hidden)
         # lstm_out(with batch_first = True) is
         # (batch_size,seq_len,num_directions * hidden_size)
         # for following linear layer we want to keep batch_size dimension and merge rest
         # .contiguous() -> solves tensor compatibility error
-        x = lstm_out.contiguous().view(batch_size,-1)
+        x = lstm_out.contiguous().view(batch_size, -1)
         return self.l_linear(x)
 
 
@@ -67,44 +68,43 @@ def load_process_data():
     df_validation = pd.read_csv('validate.csv', header=None)
     df_test = pd.read_csv('test.csv', header=None)
 
-    #split to X, y
+    # split to X, y
     X_train = df_train.loc[:, df_train.columns != 0]
     y_train = df_train.loc[:, df_train.columns == 0]
     X_validation = df_validation.loc[:, df_validation.columns != 0]
     y_validation = df_validation.loc[:, df_validation.columns == 0]
     X_test = df_test.loc[:, df_validation.columns != 0]
 
-    #log scaling
-    #X_train = np.log10(X_train)
-    #X_validation = np.log10(X_validation)
-    #X_test = np.log10(X_test)
+    # log scaling
+    X_train = np.log(X_train)
+    X_validation = np.log(X_validation)
+    X_test = np.log(X_test)
 
-    #Robust scaler
-    scaler = preprocessing.StandardScaler().fit(X_train)
+    # Robust scaler
+    scaler = preprocessing.RobustScaler().fit(X_train)
 
-    #move to tensor 700000, 30, 4 with scaling
-    #X_train_scale = np.stack(np.split(scaler.transform(X_train), 30, 1), 1)
-    #X_validation_scale = np.stack(np.split(scaler.transform(X_validation), 30, 1), 1)
+    # move to tensor 700000, 30, 4 with scaling
+    # X_train_scale = np.stack(np.split(scaler.transform(X_train), 30, 1), 1)
+    # X_validation_scale = np.stack(np.split(scaler.transform(X_validation), 30, 1), 1)
 
-    #move to tensor 700000, 30, 4 without scaling
-    #X_train_scale = np.stack(np.split(X_train, 30, 1), 1)
-    #X_validation_scale = np.stack(np.split(X_validation, 30, 1), 1)
+    # move to tensor 700000, 30, 4 without scaling
+    # X_train_scale = np.stack(np.split(X_train, 30, 1), 1)
+    # X_validation_scale = np.stack(np.split(X_validation, 30, 1), 1)
 
-    #robust scaling
+    # robust scaling
     X_train_scale = scaler.transform(X_train)
     X_validation_scale = scaler.transform(X_validation)
     X_test_scale = scaler.transform(X_test)
 
-    #z-scoring by axis 1 means by rows
-    #X_train_scale = preprocessing.scale(X_train, axis=0)
-    #X_validation_scale = preprocessing.scale(X_validation, axis=0)
+    # z-scoring by axis 1 means by rows
+    # X_train_scale = preprocessing.scale(X_train, axis=0)
+    # X_validation_scale = preprocessing.scale(X_validation, axis=0)
 
+    # plot cluster map
+    # sns.clustermap(X_train_scale[:10000, :], cmap='RdBu', vmin=-1, vmax=1)
+    # plt.savefig("clustermap")
 
-    #plot cluster map
-    #sns.clustermap(X_train_scale[:10000, :], cmap='RdBu', vmin=-1, vmax=1)
-    #plt.savefig("clustermap")
-
-    return X_train_scale[:100000, :], y_train[:100000], X_validation_scale[:100000, :], y_validation[:100000], X_test_scale
+    return X_train_scale[:10000, :], y_train[:10000], X_validation_scale[:10000, :], y_validation[:10000], X_test_scale
 
 
 def fbeta_keras(y_true, y_pred, threshold_shift=0):
@@ -133,39 +133,44 @@ def fbeta_keras(y_true, y_pred, threshold_shift=0):
     beta_squared = beta ** 2
     return (beta_squared + 1) * (precision * recall) / (beta_squared * precision + recall + K.epsilon())
 
+
 def plot_histogram(X):
     for i in range(4):
         plt.clf()
         plt.close()
         plt.hist(X[:, i], bins=100)
-        plt.gca().set(title='feature number '+str(i)+' Histogram', ylabel='Frequency')
-        plt.savefig("histogram of feature num"+str(i)+".png")
+        plt.gca().set(title='feature number ' + str(i) + ' Histogram', ylabel='Frequency')
+        plt.savefig("histogram of feature num" + str(i) + ".png")
+
 
 def MLPclassification(X_train, y_train, X_validation, y_validation):
-    clf = MLPClassifier(max_iter=250, verbose=2, batch_size=64).fit(X_train, y_train)
-    #clf = RandomForestClassifier(n_estimators=300, max_depth=7, verbose=1).fit(X_train, y_train)
+    # clf = MLPClassifier(max_iter=250, verbose=2, batch_size=64).fit(X_train, y_train)
+    # clf = RandomForestClassifier(n_estimators=1000, max_depth=7, verbose=1).fit(X_train, y_train)
+    clf = svm.SVC(C=0.01, kernel='linear', probability=True).fit(X_train, y_train)
 
-    #you can change the metric if you want
-    y_train_pred = clf.predict(X_train)
-    y_val_pred = clf.predict(X_validation)
+    # you can change the metric if you want
+    # y_train_pred = clf.predict(X_train)
+    # y_val_pred = clf.predict(X_validation)
 
-    print('Train beta accuracy', accuracy_score(y_train, y_train_pred))
-    print('Validation beta accuracy', accuracy_score(y_validation, y_val_pred))
+    y_train_pred = np.where(clf.predict_proba(X_train)[:, 1] > 0.58, 1, 0)
+    y_val_pred = np.where(clf.predict_proba(X_validation)[:, 1] > 0.58, 1, 0)
 
-    print('Train beta precision', precision_score(y_train,y_train_pred))
-    print('Validation beta precision', precision_score(y_validation, y_val_pred))
+    print('Train accuracy', accuracy_score(y_train, y_train_pred))
+    print('Validation accuracy', accuracy_score(y_validation, y_val_pred))
 
-    print('Train beta recall', recall_score(y_train, y_train_pred))
-    print('Validation beta recall', recall_score(y_validation, y_val_pred))
+    print('Train precision', precision_score(y_train, y_train_pred))
+    print('Validation precision', precision_score(y_validation, y_val_pred))
 
-    print('Train beta score', fbeta_score(y_train, y_train_pred, beta=0.25))
-    print('Validation beta score', fbeta_score(y_validation, y_val_pred, beta=0.25))
+    print('Train recall', recall_score(y_train, y_train_pred))
+    print('Validation recall', recall_score(y_validation, y_val_pred))
+
+    print('Train f-beta score', fbeta_score(y_train, y_train_pred, beta=0.25))
+    print('Validation f-beta score', fbeta_score(y_validation, y_val_pred, beta=0.25))
 
     return clf
 
 
 X_train, y_train, X_validation, y_validation, X_test = load_process_data()
-
 
 X_train_mean = np.mean(np.stack(np.split(X_train, 30, 1), 1), axis=1)
 X_validation_mean = np.mean(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
@@ -183,7 +188,6 @@ X_train_min = np.min(np.stack(np.split(X_train, 30, 1), 1), axis=1)
 X_validation_min = np.min(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
 X_test_min = np.min(np.stack(np.split(X_test, 30, 1), 1), axis=1)
 
-
 X_train = np.concatenate((X_train_mean, X_train_std, X_train_min, X_train_max), axis=1)
 X_validation = np.concatenate((X_validation_mean, X_validation_std, X_validation_min, X_validation_max), axis=1)
 X_test = np.concatenate((X_test_mean, X_test_std, X_test_min, X_test_max), axis=1)
@@ -197,8 +201,7 @@ sns.pairplot(df,hue = 'target', diag_kind= 'hist',
              diag_kws=dict(alpha=0.5))
 plt.savefig("pariplot_map")
 '''
-#plot_histogram(X_train)
-
+# plot_histogram(X_train)
 
 
 '''
@@ -210,14 +213,12 @@ X_validation = np.delete(X_validation, features_idx, axis=1)
 
 clf = MLPclassification(X_train, y_train, X_validation, y_validation)
 y_test_pred = clf.predict(X_test)
-np.savetxt('203768460_204380992_4.txt', y_test_pred.astype(int), fmt='%i', delimiter='\n')
+# np.savetxt('203768460_204380992_4.txt', y_test_pred.astype(int), fmt='%i', delimiter='\n')
 
 
-
-
-#move to tensor #samples, #time_stamp, #fetaures per time stamp
-#X_train = np.stack(np.split(X_train, 30, 1), 1)
-#X_validation = np.stack(np.split(X_validation, 30, 1), 1)
+# move to tensor #samples, #time_stamp, #fetaures per time stamp
+# X_train = np.stack(np.split(X_train, 30, 1), 1)
+# X_validation = np.stack(np.split(X_validation, 30, 1), 1)
 
 '''
 #keras LSTM
@@ -245,8 +246,7 @@ print("Accuracy: %.2f%%" % (scores[1]*100))
 print('Validation beta score', fbeta_score(y_validation, y_val_pred, beta=0.25))
 '''
 
-
-#pytorch LSTM
+# pytorch LSTM
 '''
 X = X_train
 y = np.array(y_train)
