@@ -62,7 +62,7 @@ class Network():
         rows_index = np.random.choice(dataset_dict["X_train"].shape[0],
                                       size=num_of_rows,
                                       replace=False)
-
+        print(f"train_net with param{self.network_params}")
         self.model.fit(dataset_dict["X_train"][rows_index,:],
                   dataset_dict["y_train"][rows_index])
 
@@ -91,7 +91,7 @@ class Network():
         return validation_beta_score
 
     def train_final_net(self, dataset_dict):
-        print("train the best Network..")
+        print(f"best Network.. train_final_net  with param{self.network_params}")
         self.compile_model(bFinal=True)
         self.model.fit(dataset_dict["X_train"],
                        dataset_dict["y_train"])
