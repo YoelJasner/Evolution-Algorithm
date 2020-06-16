@@ -9,7 +9,7 @@ import multiprocessing
 from ctypes import  c_double
 import numpy as np
 
-FILE_NAME = "203768460_204380992_11.txt"
+FILE_NAME = "203768460_204380992_12.txt"
 
 # Setup logging.
 logging.basicConfig(
@@ -36,7 +36,8 @@ def feature_sub(X_train, X_validation, X_test):
     X_test_first_f = X_test_4_f[:, :, 0] - X_test_4_f[:, :, 2]
     X_test_second_f = X_test_4_f[:, :, 1] - X_test_4_f[:, :, 3]
 
-    # TODO continue implementations.. also merge columns
+    # TODO: continue implementations.. need to merge columns so the
+    # X_train_2_f will be in shape (700000,30,2)
     X_train_2_f = None# X_train_first_f + X_train_second_f
     X_validation_2_f = None# X_validation_first_f + X_validation_second_f
     X_test_2_f = None # X_test_first_f + X_test_second_f
@@ -92,6 +93,8 @@ def pre_process_data(X_train, X_validation, X_test,
     X_validation_scale = scaler.transform(X_validation)
     X_test_scale = scaler.transform(X_test)
 
+    # TODO: Note that i replace the feature_extraction input's from
+    #  regular to _scale
     if feature_extract == True:
         X_train_scale, X_validation_scale, X_test_scale = \
             feature_extraction(X_train_scale,
