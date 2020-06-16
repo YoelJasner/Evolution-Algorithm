@@ -20,6 +20,29 @@ logging.basicConfig(
 )
 
 
+def feature_sub(X_train, X_validation, X_test):
+
+    X_train_4_f = np.stack(np.split(X_train, 30, 1), 1)
+    X_validation_4_f = np.stack(np.split(X_validation, 30, 1), 1)
+    X_test_4_f = np.stack(np.split(X_test, 30, 1), 1)
+
+    # sub the first feature from the 1st module by the second module
+    X_train_first_f = X_train_4_f[:, :, 0] - X_train_4_f[:, :, 2]
+    X_train_second_f = X_train_4_f[:, :, 1] - X_train_4_f[:, :, 3]
+
+    X_validation_first_f = X_validation_4_f[:, :, 0] - X_validation_4_f[:, :, 2]
+    X_validation_second_f = X_validation_4_f[:, :, 1] - X_validation_4_f[:, :, 3]
+
+    X_test_first_f = X_test_4_f[:, :, 0] - X_test_4_f[:, :, 2]
+    X_test_second_f = X_test_4_f[:, :, 1] - X_test_4_f[:, :, 3]
+
+    # TODO continue implementations.. also merge columns
+    X_train_2_f = None# X_train_first_f + X_train_second_f
+    X_validation_2_f = None# X_validation_first_f + X_validation_second_f
+    X_test_2_f = None # X_test_first_f + X_test_second_f
+
+    return X_train_2_f, X_validation_2_f, X_test_2_f
+
 def feature_extraction(X_train, X_validation, X_test):
     X_train_mean = np.mean(np.stack(np.split(X_train, 30, 1), 1), axis=1)
     X_validation_mean = np.mean(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
@@ -44,12 +67,19 @@ def feature_extraction(X_train, X_validation, X_test):
     return X_train, X_validation, X_test
 
 
-def pre_process_data(X_train, X_validation, X_test, scaler_type, feature_extract=True, log_scale=True ):
+def pre_process_data(X_train, X_validation, X_test,
+                     scaler_type, feature_extract=True,
+                     log_scale=True, subFeatures=False):
 
     if log_scale:
         X_train = np.log(X_train)
         X_validation = np.log(X_validation)
         X_test = np.log(X_test)
+    if subFeatures:
+        X_train, X_validation, X_test = \
+            feature_sub(X_train,
+                       X_validation,
+                       X_test)
 
     #create scaler
     if scaler_type == 'Standard':
@@ -87,7 +117,8 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     X_test = df_test.loc[:, df_validation.columns != 0]
 
     X_train_scale, X_validation_scale, X_test_scale = \
-        pre_process_data(X_train, X_validation, X_test, 'Standard')
+        pre_process_data(X_train, X_validation, X_test,
+                         scaler_type='Standard')
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
@@ -137,8 +168,12 @@ def train_networks(networks, dataset):
     pbar.close()
 
     # Update the accuracy, from the shared memory array
-    for c_index, network in enumerate(networks):
-        network.accuracy = float(accuracy_Arr[c_index])
+    for c_index, double_accur in enumerate(accuracy_Arr):
+        logging.info(f"***The net before Update accuracy {networks[c_index].accuracy}")
+        networks[c_index].accuracy = float(double_accur)
+        logging.info(f"***The net after Update accuracy {networks[c_index].accuracy}")
+
+
 
 def get_max_accuracy(networks):
     return max(x.accuracy for x in networks)
