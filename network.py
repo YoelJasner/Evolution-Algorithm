@@ -21,9 +21,11 @@ class Network():
     def compile_model(self,bFinal=False):
         # Get our network parameters.
         max_iter = self.network_params['final_max_iter'] if bFinal else self.network_params['max_iter']
+        n_iter_no_change = 20 if bFinal else 10
         self.best_threshold = 0.5
         self.model = MLPClassifier(max_iter=max_iter,
                                    verbose=2,
+                                   n_iter_no_change=n_iter_no_change,
                                     batch_size=self.network_params["batch_size"],
                                    hidden_layer_sizes=self.network_params["hidden_layer_sizes"],)
 
