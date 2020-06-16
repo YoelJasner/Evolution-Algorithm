@@ -20,18 +20,18 @@ logging.basicConfig(
 )
 
 
-def min_max_rows_scale(X_train, X_validation, X_test):
+def rows_scale(X_train, X_validation, X_test):
 
     X_train_4_f = np.stack(np.split(X_train, 30, 1), 1)
     X_validation_4_f = np.stack(np.split(X_validation, 30, 1), 1)
     X_test_4_f = np.stack(np.split(X_test, 30, 1), 1)
 
     for row in X_train_4_f:
-        preprocessing.minmax_scale(row,copy=False)
+        preprocessing.robust_scale(row,copy=False)
     for row in X_validation_4_f:
-        preprocessing.minmax_scale(row,copy=False)
+        preprocessing.robust_scale(row,copy=False)
     for row in X_test_4_f:
-        preprocessing.minmax_scale(row,copy=False)
+        preprocessing.robust_scale(row,copy=False)
     X_train_4_f = X_train_4_f.reshape((X_train_4_f.shape[0],120))
     X_validation_4_f = X_validation_4_f.reshape((X_validation_4_f.shape[0], 120))
     X_test_4_f = X_test_4_f.reshape((X_test_4_f.shape[0], 120))
@@ -91,11 +91,11 @@ def feature_extraction(X_train, X_validation, X_test):
 def pre_process_data(X_train, X_validation, X_test,
                      scaler_type, feature_extract=True,
                      log_scale=False, subFeatures=False,
-                     minMaxRowScale=True):
+                     RowScale=True):
 
-    if minMaxRowScale:
+    if RowScale:
         X_train, X_validation, X_test = \
-            min_max_rows_scale(X_train,
+            rows_scale(X_train,
                         X_validation,
                         X_test)
     # There is no case to log scale after minmaxRowScale
