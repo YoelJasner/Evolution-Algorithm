@@ -19,7 +19,6 @@ logging.basicConfig(
     filename='log.txt'
 )
 
-
 def rows_scale(X_train, X_validation, X_test):
 
     X_train_4_f = np.stack(np.split(X_train, 30, 1), 1)
@@ -87,11 +86,10 @@ def feature_extraction(X_train, X_validation, X_test):
 
     return X_train, X_validation, X_test
 
-
 def pre_process_data(X_train, X_validation, X_test,
                      scaler_type, feature_extract=True,
                      log_scale=False, subFeatures=False,
-                     RowScale=True):
+                     RowScale=False):
 
     if RowScale:
         X_train, X_validation, X_test = \
@@ -296,16 +294,17 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 5 #14  # Number of times to evole the population.
-    population = 5  #8 Number of networks in each generation.
+    generations = 1 #14  # Number of times to evole the population.
+    population = 1  #8 Number of networks in each generation.
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         #'input_shape':[120],
         #'batch_size':[16,32, 64, 128, 256, 512, 1024],
-        'batch_size': [64,128,256, 512],
+        #'batch_size': [64,128,256, 512],
+        'batch_size': [256],
         #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-         'hidden_layer_sizes': [128,256, 384, 512],
+         'hidden_layer_sizes': [1024],
         'max_iter' :[300],
         'final_max_iter': [500],
 

@@ -58,7 +58,7 @@ class Network():
             curr_train_beta_score = fbeta_score(y_train, y_train_pred, beta=beta)
 
             if curr_validation_beta_score >= best_fbeta_score_valid and \
-                curr_train_beta_score >= best_fbeta_score_train:
+                curr_train_beta_score >= best_fbeta_score_train-0.05:
 
                 best_fbeta_score_valid = curr_validation_beta_score
                 best_fbeta_score_train = curr_train_beta_score
