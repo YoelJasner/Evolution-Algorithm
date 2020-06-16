@@ -9,7 +9,7 @@ import multiprocessing
 from ctypes import  c_double
 import numpy as np
 
-FILE_NAME = "203768460_204380992_10.txt"
+FILE_NAME = "203768460_204380992_11.txt"
 
 # Setup logging.
 logging.basicConfig(
@@ -63,7 +63,10 @@ def pre_process_data(X_train, X_validation, X_test, scaler_type, feature_extract
     X_test_scale = scaler.transform(X_test)
 
     if feature_extract == True:
-        X_train_scale, X_validation_scale, X_test_scale = feature_extraction(X_train, X_validation, X_test)
+        X_train_scale, X_validation_scale, X_test_scale = \
+            feature_extraction(X_train_scale,
+                               X_validation_scale,
+                               X_test_scale)
 
     return X_train_scale, X_validation_scale, X_test_scale
 
@@ -227,16 +230,16 @@ def print_networks(networks):
 
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
-    generations = 2 #14  # Number of times to evole the population.
-    population = 3  #8 Number of networks in each generation.
+    generations = 5 #14  # Number of times to evole the population.
+    population = 4  #8 Number of networks in each generation.
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
         #'input_shape':[120],
-        #'batch_size':[32, 64, 128, 256, 512, 1024],
-        'batch_size': [16,32,64,128],
+        #'batch_size':[16,32, 64, 128, 256, 512, 1024],
+        'batch_size': [64,128,256, 512],
         #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-         'hidden_layer_sizes': [8,16,32,64,128],
+         'hidden_layer_sizes': [128,256, 384, 512],
         'max_iter' :[300],
         'final_max_iter': [500],
 
