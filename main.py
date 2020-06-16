@@ -7,6 +7,7 @@ from sklearn import preprocessing
 import pandas as pd
 import multiprocessing
 from ctypes import  c_double
+import numpy as np
 
 FILE_NAME = "203768460_204380992_10.txt"
 
@@ -17,6 +18,55 @@ logging.basicConfig(
     level=logging.DEBUG,
     filename='log.txt'
 )
+
+
+def feature_extraction(X_train, X_validation, X_test):
+    X_train_mean = np.mean(np.stack(np.split(X_train, 30, 1), 1), axis=1)
+    X_validation_mean = np.mean(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
+    X_test_mean = np.mean(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+
+    X_train_std = np.std(np.stack(np.split(X_train, 30, 1), 1), axis=1)
+    X_validation_std = np.std(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
+    X_test_std = np.std(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+
+    X_train_max = np.max(np.stack(np.split(X_train, 30, 1), 1), axis=1)
+    X_validation_max = np.max(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
+    X_test_max = np.max(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+
+    X_train_min = np.min(np.stack(np.split(X_train, 30, 1), 1), axis=1)
+    X_validation_min = np.min(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
+    X_test_min = np.min(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+
+    X_train = np.concatenate((X_train_mean, X_train_std, X_train_min, X_train_max), axis=1)
+    X_validation = np.concatenate((X_validation_mean, X_validation_std, X_validation_min, X_validation_max), axis=1)
+    X_test = np.concatenate((X_test_mean, X_test_std, X_test_min, X_test_max), axis=1)
+
+    return X_train, X_validation, X_test
+
+
+def pre_process_data(X_train, X_validation, X_test, scaler_type, feature_extract=True, log_scale=True ):
+
+    if log_scale:
+        X_train = np.log(X_train)
+        X_validation = np.log(X_validation)
+        X_test = np.log(X_test)
+
+    #create scaler
+    if scaler_type == 'Standard':
+        scaler = preprocessing.StandardScaler().fit(X_train)
+    elif scaler_type == 'Robust':
+        scaler = preprocessing.RobustScaler().fit(X_train)
+
+    # robust scaling
+    X_train_scale = scaler.transform(X_train)
+    X_validation_scale = scaler.transform(X_validation)
+    X_test_scale = scaler.transform(X_test)
+
+    if feature_extract == True:
+        X_train_scale, X_validation_scale, X_test_scale = feature_extraction(X_train, X_validation, X_test)
+
+    return X_train_scale, X_validation_scale, X_test_scale
+
 def load_process_data(train_file_name,valid_file_name,test_file_name):
     '''
     read train & validation file pre process the data
@@ -33,13 +83,8 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     y_validation = df_validation.loc[:, df_validation.columns == 0].values
     X_test = df_test.loc[:, df_validation.columns != 0]
 
-    #Robust scaler
-    scaler = preprocessing.StandardScaler().fit(X_train)
-
-    #robust scaling
-    X_train_scale = scaler.transform(X_train)
-    X_validation_scale = scaler.transform(X_validation)
-    X_test_scale = scaler.transform(X_test)
+    X_train_scale, X_validation_scale, X_test_scale = \
+        pre_process_data(X_train, X_validation, X_test, 'Standard')
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
@@ -187,11 +232,11 @@ def main(train_file_name,valid_file_name,test_file_name):
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
-        'input_shape':[120],
+        #'input_shape':[120],
         #'batch_size':[32, 64, 128, 256, 512, 1024],
         'batch_size': [16,32,64,128],
         #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-         'hidden_layer_sizes': [16,32,64],
+         'hidden_layer_sizes': [8,16,32,64,128],
         'max_iter' :[300],
         'final_max_iter': [500],
 
