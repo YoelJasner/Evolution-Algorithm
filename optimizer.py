@@ -158,34 +158,44 @@ class Optimizer():
         # Add children, which are bred from two remaining networks.
         while len(children) < desired_length:
             # In case that the parents array is empty..
-            if parents_length == 0:
-                network = Network(self.nn_param_choices)
-                network.create_random()
+            if parents_length <= 1:
+                rand_female = Network(self.nn_param_choices)
+                rand_female.create_random()
 
-                # Add the network to our population.
-                children.append(network)
-                continue
 
-            male = random.randint(0, parents_length-1)
-            female = random.randint(0, parents_length-1)
+                # Add the network to our population when there is no potentioal parents
+                if parents_length == 0:
+                    children.append(rand_female)
+                else:
+                    male = parents[0]
 
-            # Assuming they aren't the same network...
-            if male == female and parents_length-1 == 0:
-                print(f"male==female only one parent in array")
-                children.append(parents[male])
+                    # Breed them.
+                    babies = self.breed(male, rand_female)
 
+                    # Add the children one at a time.
+                    for baby in babies:
+                        # Don't grow larger than desired length.
+                        if len(children) < desired_length:
+                            children.append(baby)
+            # in case of more than 2 available parents
             else:
-                male = parents[male]
-                female = parents[female]
 
-                # Breed them.
-                babies = self.breed(male, female)
+                male = random.randint(0, parents_length-1)
+                female = random.randint(0, parents_length-1)
 
-                # Add the children one at a time.
-                for baby in babies:
-                    # Don't grow larger than desired length.
-                    if len(children) < desired_length:
-                        children.append(baby)
+                # Assuming they aren't the same network...
+                if male != female:
+                    male = parents[male]
+                    female = parents[female]
+
+                    # Breed them.
+                    babies = self.breed(male, female)
+
+                    # Add the children one at a time.
+                    for baby in babies:
+                        # Don't grow larger than desired length.
+                        if len(children) < desired_length:
+                            children.append(baby)
 
         parents.extend(children)
 

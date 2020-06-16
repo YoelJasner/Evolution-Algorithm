@@ -139,7 +139,7 @@ def train_networks(networks, dataset):
     processes = []
     activated_network = set()
     for index,network in enumerate(networks):
-        accuracy_Arr[index] = 0
+        accuracy_Arr[index] = network.accuracy
         # for single process
         #network.train(dataset)
         #pbar.update(1)
@@ -266,7 +266,7 @@ def print_networks(networks):
 def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
     generations = 5 #14  # Number of times to evole the population.
-    population = 4  #8 Number of networks in each generation.
+    population = 5  #8 Number of networks in each generation.
 
     nn_param_choices = {
         'Network_train_sample_size': [10000],
