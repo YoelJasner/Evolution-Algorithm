@@ -21,7 +21,7 @@ class Network():
     def compile_model(self,bFinal=False):
         # Get our network parameters.
         max_iter = self.network_params['final_max_iter'] if bFinal else self.network_params['max_iter']
-        n_iter_no_change = 20 if bFinal else 10
+        n_iter_no_change = 10 if bFinal else 10
         self.best_threshold = 0.5
         self.model = MLPClassifier(max_iter=max_iter,
                                    verbose=2,
@@ -58,7 +58,7 @@ class Network():
             curr_train_beta_score = fbeta_score(y_train, y_train_pred, beta=beta)
 
             if curr_validation_beta_score >= best_fbeta_score_valid and \
-                curr_train_beta_score >= best_fbeta_score_train-0.05:
+                curr_train_beta_score >= best_fbeta_score_train:
 
                 best_fbeta_score_valid = curr_validation_beta_score
                 best_fbeta_score_train = curr_train_beta_score
