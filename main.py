@@ -87,7 +87,7 @@ def feature_extraction(X_train, X_validation, X_test):
     return X_train, X_validation, X_test
 
 def pre_process_data(X_train, X_validation, X_test,
-                     scaler_type, feature_extract=True,
+                     scaler_type='Standard', feature_extract=False,
                      log_scale=False, subFeatures=False,
                      RowScale=False):
 
@@ -298,13 +298,13 @@ def main(train_file_name,valid_file_name,test_file_name):
     population = 1  #8 Number of networks in each generation.
 
     nn_param_choices = {
-        'Network_train_sample_size': [10000],
-        #'input_shape':[120],
+        #'Network_train_sample_size': [10000],
+        'Network_train_sample_size': [1000],
         #'batch_size':[16,32, 64, 128, 256, 512, 1024],
         #'batch_size': [64,128,256, 512],
         'batch_size': [256],
         #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-         'hidden_layer_sizes': [1024],
+         'hidden_layer_sizes': [256],
         'max_iter' :[300],
         'final_max_iter': [500],
 
