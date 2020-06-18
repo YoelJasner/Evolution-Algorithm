@@ -9,7 +9,7 @@ import multiprocessing
 from ctypes import  c_double
 import numpy as np
 
-FILE_NAME = "203768460_204380992_12.txt"
+FILE_NAME = "203768460_204380992_16.txt"
 
 # Setup logging.
 logging.basicConfig(
@@ -21,9 +21,9 @@ logging.basicConfig(
 
 def rows_scale(X_train, X_validation, X_test):
 
-    X_train_4_f = np.stack(np.split(X_train, 30, 1), 1)
-    X_validation_4_f = np.stack(np.split(X_validation, 30, 1), 1)
-    X_test_4_f = np.stack(np.split(X_test, 30, 1), 1)
+    X_train_4_f = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
+    X_validation_4_f = np.stack(np.split(X_validation, X_validation.shape[1]/4, 1), 1)
+    X_test_4_f = np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1)
 
     for row in X_train_4_f:
         preprocessing.robust_scale(row,copy=False)
@@ -31,123 +31,157 @@ def rows_scale(X_train, X_validation, X_test):
         preprocessing.robust_scale(row,copy=False)
     for row in X_test_4_f:
         preprocessing.robust_scale(row,copy=False)
-    X_train_4_f = X_train_4_f.reshape((X_train_4_f.shape[0],120))
-    X_validation_4_f = X_validation_4_f.reshape((X_validation_4_f.shape[0], 120))
-    X_test_4_f = X_test_4_f.reshape((X_test_4_f.shape[0], 120))
+    X_train_4_f = X_train_4_f.reshape((X_train.shape))
+    X_validation_4_f = X_validation_4_f.reshape((X_validation.shape))
+    X_test_4_f = X_test_4_f.reshape((X_test.shape))
 
 
     return X_train_4_f, X_validation_4_f, X_test_4_f
 
 
-def feature_sub(X_train, X_validation, X_test):
+def feature_model_sub(X_train, X_validation, X_test):
 
-    X_train_4_f = np.stack(np.split(X_train, 30, 1), 1)
-    X_validation_4_f = np.stack(np.split(X_validation, 30, 1), 1)
-    X_test_4_f = np.stack(np.split(X_test, 30, 1), 1)
+    X_train = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
+    X_validation = np.stack(np.split(X_validation, X_validation.shape[1]/4, 1), 1)
+    X_test = np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1)
 
-    # sub the first feature from the 1st module by the second module
-    X_train_first_f = X_train_4_f[:, :, 0] - X_train_4_f[:, :, 2]
-    X_train_second_f = X_train_4_f[:, :, 1] - X_train_4_f[:, :, 3]
+    X_train = np.stack([X_train[:, :, 2] - X_train[:, :, 0], X_train[:, :, 3] - X_train[:, :, 1]], axis=1)
+    X_train = X_train.transpose(0, 2, 1).reshape(X_train.shape[0], X_train.shape[1] * X_train.shape[2])
 
-    X_validation_first_f = X_validation_4_f[:, :, 0] - X_validation_4_f[:, :, 2]
-    X_validation_second_f = X_validation_4_f[:, :, 1] - X_validation_4_f[:, :, 3]
+    X_validation = np.stack([X_validation[:, :, 2] - X_validation[:, :, 0], X_validation[:, :, 3] - X_validation[:, :, 1]], axis=1)
+    X_validation = X_validation.transpose(0, 2, 1).reshape(X_validation.shape[0],  X_validation.shape[1] * X_validation.shape[2])
 
-    X_test_first_f = X_test_4_f[:, :, 0] - X_test_4_f[:, :, 2]
-    X_test_second_f = X_test_4_f[:, :, 1] - X_test_4_f[:, :, 3]
+    X_test = np.stack([X_test[:, :, 2] - X_test[:, :, 0], X_test[:, :, 3] - X_test[:, :, 1]], axis=1)
+    X_test = X_test.transpose(0, 2, 1).reshape(X_test.shape[0],   X_test.shape[1] * X_test.shape[2])
 
-    # TODO: continue implementations.. need to merge columns so the
-    # X_train_2_f will be in shape (700000,30,2)
-    X_train_2_f = None# X_train_first_f + X_train_second_f
-    X_validation_2_f = None# X_validation_first_f + X_validation_second_f
-    X_test_2_f = None # X_test_first_f + X_test_second_f
+    return X_train, X_validation, X_test
 
-    return X_train_2_f, X_validation_2_f, X_test_2_f
+def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
+    n_f = 2 if subModelFeatures else 4
+    # TODO tegular mean
+    # X_train_mean = np.mean(np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1), axis=1)
+    # X_validation_mean = np.mean(np.stack(np.split(X_validation, X_validation.shape[1]/4, 1), 1), axis=1)
+    # X_test_mean = np.mean(np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1), axis=1)
 
-def feature_extraction(X_train, X_validation, X_test):
-    X_train_mean = np.mean(np.stack(np.split(X_train, 30, 1), 1), axis=1)
-    X_validation_mean = np.mean(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
-    X_test_mean = np.mean(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+    fc = 1.1
+    first_apear = int(6-(X_train.shape[1] /n_f %2))
+    weight_coeff = np.array([fc] * first_apear + [fc**2] * 6 + [fc**3] * 6 + [fc**4] * 6 + [fc**5] * 6)
+    weight_coeff = weight_coeff.astype(float) / weight_coeff.sum()
 
-    X_train_std = np.std(np.stack(np.split(X_train, 30, 1), 1), axis=1)
-    X_validation_std = np.std(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
-    X_test_std = np.std(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+    X_train_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
-    X_train_max = np.max(np.stack(np.split(X_train, 30, 1), 1), axis=1)
-    X_validation_max = np.max(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
-    X_test_max = np.max(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+    X_train_std = np.std(np.stack(np.split(X_train, X_train.shape[1]/n_f, 1), 1), axis=1)
+    X_validation_std = np.std(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
+    X_test_std = np.std(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
 
-    X_train_min = np.min(np.stack(np.split(X_train, 30, 1), 1), axis=1)
-    X_validation_min = np.min(np.stack(np.split(X_validation, 30, 1), 1), axis=1)
-    X_test_min = np.min(np.stack(np.split(X_test, 30, 1), 1), axis=1)
+    X_train_max = np.max(np.stack(np.split(X_train, X_train.shape[1]/n_f, 1), 1), axis=1)
+    X_validation_max = np.max(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
+    X_test_max = np.max(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
 
-    X_train = np.concatenate((X_train_mean, X_train_std, X_train_min, X_train_max), axis=1)
-    X_validation = np.concatenate((X_validation_mean, X_validation_std, X_validation_min, X_validation_max), axis=1)
-    X_test = np.concatenate((X_test_mean, X_test_std, X_test_min, X_test_max), axis=1)
+    X_train_min = np.min(np.stack(np.split(X_train, X_train.shape[1]/n_f, 1), 1), axis=1)
+    X_validation_min = np.min(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
+    X_test_min = np.min(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
+
+    X_train = np.concatenate((X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
+    X_validation = np.concatenate((X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
+    X_test = np.concatenate((X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
+
 
     return X_train, X_validation, X_test
 
 def pre_process_data(X_train, X_validation, X_test,
-                     scaler_type='Standard', feature_extract=False,
-                     log_scale=False, subFeatures=False,
-                     RowScale=False):
+                     scaler_type, feature_extract,
+                     log_scale, subModelFeatures,
+                     RowScale):
 
-    if RowScale:
+    # Bad result using rowscale
+    if False and RowScale:
         X_train, X_validation, X_test = \
             rows_scale(X_train,
                         X_validation,
                         X_test)
+
     # There is no case to log scale after minmaxRowScale
     elif log_scale:
         X_train = np.log(X_train)
         X_validation = np.log(X_validation)
         X_test = np.log(X_test)
 
-    if subFeatures:
+    if subModelFeatures:
         X_train, X_validation, X_test = \
-            feature_sub(X_train,
-                       X_validation,
-                       X_test)
+            feature_model_sub(X_train,
+                              X_validation,
+                              X_test)
 
-    #create scaler
+    # TODO: Note that i replace the feature_extraction input's from
+    #  regular to _scale
+    if feature_extract == True:
+
+        X_train, X_validation, X_test = \
+            feature_extraction(X_train,
+                               X_validation,
+                               X_test,
+                               subModelFeatures)
+
+    # create scaler
     if scaler_type == 'Standard':
         scaler = preprocessing.StandardScaler().fit(X_train)
     elif scaler_type == 'Robust':
         scaler = preprocessing.RobustScaler().fit(X_train)
 
     # robust scaling
-    X_train_scale = scaler.transform(X_train)
-    X_validation_scale = scaler.transform(X_validation)
-    X_test_scale = scaler.transform(X_test)
+    X_train = scaler.transform(X_train)
+    X_validation = scaler.transform(X_validation)
+    X_test = scaler.transform(X_test)
 
-    # TODO: Note that i replace the feature_extraction input's from
-    #  regular to _scale
-    if feature_extract == True:
-        X_train_scale, X_validation_scale, X_test_scale = \
-            feature_extraction(X_train_scale,
-                               X_validation_scale,
-                               X_test_scale)
-
-    return X_train_scale, X_validation_scale, X_test_scale
+    return X_train, X_validation, X_test
 
 def load_process_data(train_file_name,valid_file_name,test_file_name):
     '''
     read train & validation file pre process the data
     :return: X_train, y_train, X_val, y_val,
     '''
+
+    bFeatureDiff = False
+    log_scale = True
+    scaler_type = 'Standard'
+    feature_extract = True
+    subModelFeatures = True
+    RowScale = False
+
+
+    if bFeatureDiff:
+        if log_scale:
+            train_file_name= train_file_name.replace(".csv","_log_diff.csv")
+            valid_file_name = valid_file_name.replace(".csv", "_log_diff.csv")
+            test_file_name = test_file_name.replace(".csv", "_log_diff.csv")
+            log_scale=False
+        else:
+            train_file_name = train_file_name.replace(".csv", "_diff.csv")
+            valid_file_name = valid_file_name.replace(".csv", "_diff.csv")
+            test_file_name = test_file_name.replace(".csv", "_diff.csv")
+
     df_train = pd.read_csv(train_file_name, header=None)
     df_validation = pd.read_csv(valid_file_name, header=None)
     df_test = pd.read_csv(test_file_name, header=None)
 
     #split to X, y
-    X_train = df_train.loc[:, df_train.columns != 0].values
+    startPoint = 0
+    X_train = df_train.loc[:, df_train.columns > startPoint].values
     y_train = df_train.loc[:, df_train.columns == 0].values
-    X_validation = df_validation.loc[:, df_validation.columns != 0].values
+    X_validation = df_validation.loc[:, df_validation.columns > startPoint].values
     y_validation = df_validation.loc[:, df_validation.columns == 0].values
-    X_test = df_test.loc[:, df_validation.columns != 0].values
+    X_test = df_test.loc[:, df_test.columns > startPoint].values
 
     X_train_scale, X_validation_scale, X_test_scale = \
         pre_process_data(X_train, X_validation, X_test,
-                         scaler_type='Standard')
+                         scaler_type=scaler_type,
+                         feature_extract=feature_extract,
+                         subModelFeatures=subModelFeatures,
+                         RowScale=RowScale,
+                         log_scale=log_scale)
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
@@ -304,7 +338,7 @@ def main(train_file_name,valid_file_name,test_file_name):
         #'batch_size': [64,128,256, 512],
         'batch_size': [256],
         #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-         'hidden_layer_sizes': [256],
+         'hidden_layer_sizes': [64],
         'max_iter' :[300],
         'final_max_iter': [500],
 

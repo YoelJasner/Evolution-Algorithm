@@ -11,8 +11,14 @@ import numpy as np
 
 
 
-def calc_diff_feature(X_train, X_validation, X_test):
+def calc_diff_feature(X_train, X_validation, X_test,log_scale=False):
     print("start diff features")
+
+    if log_scale:
+        X_train = np.log(X_train)
+        X_validation = np.log(X_validation)
+        X_test = np.log(X_test)
+
     X_train_final = np.diff(
         np.stack(np.split(X_train, 30, 1), 1).transpose(0, 2, 1)
     ).transpose(0, 2, 1) \
@@ -39,6 +45,8 @@ def main(train_file_name,valid_file_name,test_file_name):
     read train & validation file pre process the data
     :return: X_train, y_train, X_val, y_val,
     '''
+    log_scale=True
+
     df_train = pd.read_csv(train_file_name, header=None)
     df_validation = pd.read_csv(valid_file_name, header=None)
     df_test = pd.read_csv(test_file_name, header=None)
@@ -51,15 +59,19 @@ def main(train_file_name,valid_file_name,test_file_name):
     X_test = df_test.loc[:, df_validation.columns != 0].values
     y_test = np.asarray([[-1] * X_test.shape[0]]).T
     X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
-        calc_diff_feature(X_train, X_validation, X_test)
+        calc_diff_feature(X_train, X_validation, X_test,log_scale)
 
     train_table = np.concatenate((y_train, X_train_prev_ts), axis=1)
     validation_table = np.concatenate((y_validation, X_validation_prev_ts), axis=1)
     test_table = np.concatenate((y_test, X_test_prev_ts), axis=1)
 
-    np.savetxt(train_file_name.replace(".csv","_diff.csv"), train_table, delimiter=",",fmt='%1.6f')
-    np.savetxt(valid_file_name.replace(".csv", "_diff.csv"), validation_table, delimiter=",",fmt='%1.6f')
-    np.savetxt(test_file_name.replace(".csv", "_diff.csv"), test_table, delimiter=",",fmt='%1.6f')
+    if log_scale:
+        sufix = "_log_diff.csv"
+    else:
+        sufix = "_diff.csv"
+    np.savetxt(train_file_name.replace(".csv",sufix), train_table, delimiter=",",fmt='%1.6f')
+    np.savetxt(valid_file_name.replace(".csv", sufix), validation_table, delimiter=",",fmt='%1.6f')
+    np.savetxt(test_file_name.replace(".csv", sufix), test_table, delimiter=",",fmt='%1.6f')
 
 
 
