@@ -8,8 +8,19 @@ import pandas as pd
 import multiprocessing
 from ctypes import  c_double
 import numpy as np
+from  gplearn.genetic import SymbolicClassifier
+from sklearn.preprocessing import StandardScaler
+import sys
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import fbeta_score
+from gplearn.fitness import make_fitness
+from gplearn.functions import make_function
+import numpy as np
+from numpy import savetxt
+from sklearn.metrics import fbeta_score, accuracy_score, precision_score, recall_score
 
-FILE_NAME = "203768460_204380992_16.txt"
+FILE_NAME = "GP_203768460_204380992_0.txt"
 
 # Setup logging.
 logging.basicConfig(
@@ -84,13 +95,9 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_min = np.min(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
     X_test_min = np.min(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
 
-    # X_train = np.concatenate((X_train,X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
-    # X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
-    # X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
-
     X_train = np.concatenate((X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
-    X_test = np.concatenate(( X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
+    X_test = np.concatenate((X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
 
 
     return X_train, X_validation, X_test
@@ -189,179 +196,86 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
-def TrainNetworkMultiprocess(network,dataset,shared_array,index):
-    network.train(dataset)
-    shared_array[index] = network.accuracy
-def train_networks(networks, dataset):
-    """Train each network.
+def get_best_threshold(y_val_proba, y_validation):
+    best_threshold = 0.5
+    best_fbeta_score_valid = 0
+    beta = 0.25
+    for threshold in np.arange(0.5, 0.8, 0.0025):
+        y_val_pred = np.where(y_val_proba[:, 1] > threshold, 1, 0)
 
-    Args:
-        networks (list): Current population of networks
-        dataset (str): Dataset to use for training/evaluating
-    """
-    pbar = tqdm(total=len(networks))
-    accuracy_Arr = multiprocessing.Array(c_double, len(networks))
+        curr_validation_beta_score = fbeta_score(y_validation, y_val_pred, beta=beta)
 
+        if curr_validation_beta_score >= best_fbeta_score_valid:# and curr_train_beta_score >= best_fbeta_score_train:
 
-    processes = []
-    activated_network = set()
-    for index,network in enumerate(networks):
-        accuracy_Arr[index] = network.accuracy
-        # for single process
-        #network.train(dataset)
-        #pbar.update(1)
-        curr_net_param = network.network_params.items()
-        tuple_curr_net_param  = tuple(curr_net_param)
-        if tuple_curr_net_param in activated_network:
-            header_note = "#"*80
-            print(header_note)
-            print(header_note)
-            print(f"#### SKIP try to run an network that has already run {curr_net_param}")
-            print(header_note)
-            print(header_note)
-            pbar.update(1)
-            continue
-
-        activated_network.add(tuple_curr_net_param)
-        p = multiprocessing.Process(target=TrainNetworkMultiprocess,
-                                    args=(network,dataset,accuracy_Arr,index))
-        processes.append(p)
-        p.start()
-
-    for process in processes:
-        process.join()
-        pbar.update(1)
-
-    pbar.close()
-
-    # Update the accuracy, from the shared memory array
-    for c_index, double_accur in enumerate(accuracy_Arr):
-        logging.info(f"***The net before Update accuracy {networks[c_index].accuracy}")
-        networks[c_index].accuracy = float(double_accur)
-        logging.info(f"***The net after Update accuracy {networks[c_index].accuracy}")
-
-
-
-def get_max_accuracy(networks):
-    return max(x.accuracy for x in networks)
-
-def get_average_accuracy(networks):
-    """Get the average accuracy for a group of networks.
-
-    Args:
-        networks (list): List of networks
-
-    Returns:
-        float: The average accuracy of a population of networks.
-
-    """
-    total_accuracy = 0
-    counted_net =0
-    for network in networks:
-        if network.accuracy != 0:
-            counted_net+=1
-        total_accuracy += network.accuracy
-    #print(f"get_average_accuracy sum: {total_accuracy}")
-    return total_accuracy / counted_net
-
-def generate(generations, population, nn_param_choices, dataset_dict):
-    """Generate a network with the genetic algorithm.
-
-    Args:
-        generations (int): Number of times to evole the population
-        population (int): Number of networks in each generation
-        nn_param_choices (dict): Parameter choices for networks
-        dataset (str): Dataset to use for training/evaluating
-
-    """
-    optimizer = Optimizer(nn_param_choices)
-    networks = optimizer.create_population(population)
-    # Evolve the generation.
-    for i in range(generations):
-        logging.info("***Doing generation %d of %d***" %
-                     (i + 1, generations))
-        print("***Doing generation %d of %d***" %
-                     (i + 1, generations))
-
-        # Train and get accuracy for networks.
-        train_networks(networks, dataset_dict)
-
-        # Get the average accuracy for this generation.
-        average_accuracy = get_average_accuracy(networks)
-        max_accuracy = get_max_accuracy(networks)
-
-        # Print out the average accuracy each generation.
-        logging.info("Generation average: %.2f%%" % (average_accuracy * 100))
-        logging.info("Generation max: %.2f%%" % (max_accuracy * 100))
-
-        logging.info('-'*80)
-        print("***generation %d of %d*** score" %
-              (i + 1, generations))
-        print("Generation average: %.2f%%" % (average_accuracy * 100))
-        print("Generation max: %.2f%%" % (max_accuracy * 100))
-        print('-' * 80)
-
-        # Evolve, except on the last iteration.
-        if i != generations - 1:
-            # Do the evolution.
-            networks = optimizer.evolve(networks)
-
-    # Sort our final population.
-    networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
-
-    # Print out the top 3 networks.
-    #print_networks(networks[:3])
-
-    # Write the network to file
-    if i == generations - 1:
-        networks[0].train_final_net(dataset_dict)
-        networks[0].WriteModelToFile()
-        networks[0].WriteResToFile(dataset_dict,FILE_NAME)
-
-
-def print_networks(networks):
-    """Print a list of networks.
-
-    Args:
-        networks (list): The population of networks
-
-    """
-    logging.info('-'*80)
-    for network in networks:
-        network.print_network()
+            best_fbeta_score_valid = curr_validation_beta_score
+            best_threshold = threshold
+    return best_threshold
 
 def main(train_file_name,valid_file_name,test_file_name):
-    """Evolve a network."""
-    generations = 1 #14  # Number of times to evole the population.
-    population = 1  #8 Number of networks in each generation.
-
-    nn_param_choices = {
-        #'Network_train_sample_size': [10000],
-        'Network_train_sample_size': [1000],
-        #'batch_size':[16,32, 64, 128, 256, 512, 1024],
-        #'batch_size': [64,128,256, 512],
-        'batch_size': [256],
-        #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-         'hidden_layer_sizes': [64],
-        'max_iter' :[300],
-        'final_max_iter': [500],
-
-    }
-
-    logging.info("***Evolving %d generations with population %d***" %
-                 (generations, population))
 
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name, valid_file_name, test_file_name)
 
-    dataset_dict = {"X_train": X_train,
-                    "y_train": y_train,
-                    "X_validation": X_validation,
-                    "y_validation": y_validation,
-                    "X_test": X_test,
-                    }
+    gp_classifier = SymbolicClassifier(population_size=20,
+                                       generations=65,
+                                       tournament_size=3,
+                                       const_range=None,
+                                       init_depth=(4, 12),
+                                       parsimony_coefficient=0.00000000000000000000000000000001,
+                                       # parsimony_coefficient=0.0,
+                                       # init_method='full',
+                                       function_set=('add', 'sub',
+                                                     'mul', 'div'),
+                                       # make_function(my_sqr, "sqr", arity=2, wrap=False)),
+                                       transformer='sigmoid',
+                                       #metric=f_beta,
+                                       p_crossover=0.85,
+                                       p_subtree_mutation=0.04,
+                                       p_hoist_mutation=0.01,
+                                       p_point_mutation=0.04,
+                                       p_point_replace=0.005,
+                                       max_samples=1.0,
+                                       feature_names=None,
+                                       warm_start=False,
+                                       low_memory=True,
+                                       n_jobs=8,
+                                       verbose=1,
+                                       random_state=None)
 
-    generate(generations, population, nn_param_choices, dataset_dict)
+
+    gp_classifier.fit(X_train, y_train)
+
+    y_val_proba = gp_classifier.predict_proba(X_validation)
+    y_train_proba = gp_classifier.predict_proba(X_train)
+    best_threshold = get_best_threshold(y_val_proba, y_validation)
+
+    y_train_pred = np.where(y_train_proba[:, 1]
+                            > best_threshold, 1, 0)
+    y_val_pred = np.where(y_val_proba[:, 1] > best_threshold, 1, 0)
+    str_header = "$"*78
+    print(str_header)
+    print(str_header)
+    print('Train accuracy', accuracy_score(y_train, y_train_pred))
+    print('Validation accuracy', accuracy_score(y_validation, y_val_pred))
+
+    print('Train precision', precision_score(y_train, y_train_pred))
+    print('Validation precision', precision_score(y_validation, y_val_pred))
+
+    print('Train recall', recall_score(y_train, y_train_pred))
+    print('Validation recall', recall_score(y_validation, y_val_pred))
+
+    print('Train f-beta score', fbeta_score(y_train, y_train_pred, beta=0.25))
+    validation_beta_score = fbeta_score(y_validation, y_val_pred, beta=0.25)
+    print(f'Validation f-beta score {validation_beta_score}')
+    print(str_header)
+    print(str_header)
+
+
+    # y_val_pred = np.where(y_val_proba[:, 1] > best_threshold, 1, 0)
+    #
+    # final_test_predict_y = gp_classifier.predict(X_test)
+    # np.savetxt(FILE_NAME, final_test_predict_y.astype(int), fmt='%i', delimiter='\n')
+
 
 if __name__ == '__main__':
     train_file_name = sys.argv[1]
