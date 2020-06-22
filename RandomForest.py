@@ -23,15 +23,15 @@ class Network():
 
     def compile_model(self,bFinal=False):
         # Get our network parameters.
-        max_iter = 100 if bFinal else 50
+        max_iter = 150 if bFinal else 60
         max_features =  None if  bFinal else "auto"
         self.best_threshold = 0.5
         #self.model = RandomForestClassifier(n_estimators=n_estimators, verbose=2)
-        f_scorer = make_scorer(fbeta_score, beta=0.1)
-        self.model = HistGradientBoostingClassifier(learning_rate=0.05,
-            scoring=f_scorer,
-                                                    max_iter=max_iter,   verbose=2,
-                                                    validation_fraction=None)
+        f_scorer = make_scorer(fbeta_score, beta=0.125)
+        self.model = HistGradientBoostingClassifier(scoring=f_scorer,
+                    #learning_rate=0.1,max_bins=50, max_depth=3,n_iter_no_change=10,
+                                                    max_iter=max_iter,   verbose=2)#,
+                                                    #validation_fraction=0.08)
 
 
 
@@ -56,7 +56,7 @@ class Network():
         best_fbeta_score_valid = 0
         best_fbeta_score_train = 0
         beta = 0.25
-        for threshold in np.arange(0.5, 0.8, 0.0025):
+        for threshold in np.arange(0.5, 0.8, 0.001):
             y_val_pred = np.where(y_val_proba[:, 1] > threshold, 1, 0)
             # y_train_pred = np.where(y_train_proba[:, 1] > threshold, 1, 0)
 

@@ -3,13 +3,17 @@ import logging
 from optimizer import Optimizer
 from tqdm import tqdm
 import sys
-from sklearn import preprocessing
-import pandas as pd
 import multiprocessing
 from ctypes import  c_double
 import numpy as np
-
-FILE_NAME = "203768460_204380992_16.txt"
+from devol import DEvol, GenomeHandler
+from sklearn import preprocessing
+import pandas as pd
+from keras.utils.np_utils import to_categorical
+import datetime
+TIME_STR = str(datetime.datetime.now()).replace(" ", "#")
+FILE_NAME = TIME_STR+".txt"
+MODEL_NAME = TIME_STR+".h5"
 
 # Setup logging.
 logging.basicConfig(
@@ -19,6 +23,25 @@ logging.basicConfig(
     filename='log.txt'
 )
 
+#### PARAM SECTION ###############3
+###################################################################
+generations = 3  # 14  # Number of times to evole the population.
+population = 3  # 8 Number of networks in each generation.
+
+nn_param_choices = {
+    # 'Network_train_sample_size': [10000],
+    'Network_train_sample_size': [1000],
+    # 'batch_size':[16,32, 64, 128, 256, 512, 1024],
+    # 'batch_size': [64,128,256, 512],
+    'batch_size': [128],
+    # 'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
+    'hidden_layer_sizes': [32],
+    'max_iter': [10],
+    'final_max_iter': [500],
+}
+###################################################################
+###################################################################
+###################################################################
 def rows_scale(X_train, X_validation, X_test):
 
     X_train_4_f = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
@@ -26,11 +49,11 @@ def rows_scale(X_train, X_validation, X_test):
     X_test_4_f = np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1)
 
     for row in X_train_4_f:
-        preprocessing.robust_scale(row,copy=False)
+        preprocessing.scale(row,copy=False)
     for row in X_validation_4_f:
-        preprocessing.robust_scale(row,copy=False)
+        preprocessing.scale(row,copy=False)
     for row in X_test_4_f:
-        preprocessing.robust_scale(row,copy=False)
+        preprocessing.scale(row,copy=False)
     X_train_4_f = X_train_4_f.reshape((X_train.shape))
     X_validation_4_f = X_validation_4_f.reshape((X_validation.shape))
     X_test_4_f = X_test_4_f.reshape((X_test.shape))
@@ -65,7 +88,13 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
 
     fc = 1.1
     first_apear = int(6-(X_train.shape[1] /n_f %2))
+
     weight_coeff = np.array([fc] * first_apear + [fc**2] * 6 + [fc**3] * 6 + [fc**4] * 6 + [fc**5] * 6)
+
+    # fc = 1.014
+    # arr_len = int(30-(X_train.shape[1] /n_f %2))
+    # weight_coeff = np.array([fc**i for i in range(arr_len)])
+
     weight_coeff = weight_coeff.astype(float) / weight_coeff.sum()
 
     X_train_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
@@ -84,13 +113,13 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_min = np.min(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
     X_test_min = np.min(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
 
-    # X_train = np.concatenate((X_train,X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
-    # X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
-    # X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
+    X_train = np.concatenate((X_train,X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
+    X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
+    X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
 
-    X_train = np.concatenate((X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
-    X_validation = np.concatenate((X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
-    X_test = np.concatenate(( X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
+    # X_train = np.concatenate((X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
+    # X_validation = np.concatenate((X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
+    # X_test = np.concatenate(( X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
 
 
     return X_train, X_validation, X_test
@@ -101,14 +130,7 @@ def pre_process_data(X_train, X_validation, X_test,
                      RowScale):
 
     # Bad result using rowscale
-    if False and RowScale:
-        X_train, X_validation, X_test = \
-            rows_scale(X_train,
-                        X_validation,
-                        X_test)
-
-    # There is no case to log scale after minmaxRowScale
-    elif log_scale:
+    if log_scale:
         X_train = np.log(X_train)
         X_validation = np.log(X_validation)
         X_test = np.log(X_test)
@@ -154,18 +176,31 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     feature_extract = True
     subModelFeatures = False
     RowScale = False
+    raw_n_feature=2
 
 
-    if bFeatureDiff:
+
+    if bFeatureDiff and RowScale:
+        # print("cant do feature diff also raw scale")
+        # exit(-1)
+        print("Run both feature diff also raw scale")
+        prefix = f"rows_{raw_n_feature}_diff"
+    else:
+        prefix = f"rows_{raw_n_feature}" if RowScale else "diff"
+
+    if bFeatureDiff or RowScale:
+        sufix = f"_{prefix}.csv"
         if log_scale:
-            train_file_name= train_file_name.replace(".csv","_log_diff.csv")
-            valid_file_name = valid_file_name.replace(".csv", "_log_diff.csv")
-            test_file_name = test_file_name.replace(".csv", "_log_diff.csv")
-            log_scale=False
-        else:
-            train_file_name = train_file_name.replace(".csv", "_diff.csv")
-            valid_file_name = valid_file_name.replace(".csv", "_diff.csv")
-            test_file_name = test_file_name.replace(".csv", "_diff.csv")
+            sufix = f"_log_{prefix}.csv"
+
+
+        # In any case the log already calculate
+        log_scale = False
+
+        train_file_name= train_file_name.replace(".csv",sufix)
+        valid_file_name = valid_file_name.replace(".csv", sufix)
+        test_file_name = test_file_name.replace(".csv", sufix)
+
 
     df_train = pd.read_csv(train_file_name, header=None)
     df_validation = pd.read_csv(valid_file_name, header=None)
@@ -192,6 +227,7 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
 def TrainNetworkMultiprocess(network,dataset,shared_array,index):
     network.train(dataset)
     shared_array[index] = network.accuracy
+
 def train_networks(networks, dataset):
     """Train each network.
 
@@ -246,15 +282,6 @@ def get_max_accuracy(networks):
     return max(x.accuracy for x in networks)
 
 def get_average_accuracy(networks):
-    """Get the average accuracy for a group of networks.
-
-    Args:
-        networks (list): List of networks
-
-    Returns:
-        float: The average accuracy of a population of networks.
-
-    """
     total_accuracy = 0
     counted_net =0
     for network in networks:
@@ -330,24 +357,8 @@ def print_networks(networks):
     for network in networks:
         network.print_network()
 
-def main(train_file_name,valid_file_name,test_file_name):
+def main(train_file_name,valid_file_name,test_file_name,MyMain=True):
     """Evolve a network."""
-    generations = 1 #14  # Number of times to evole the population.
-    population = 1  #8 Number of networks in each generation.
-
-    nn_param_choices = {
-        #'Network_train_sample_size': [10000],
-        'Network_train_sample_size': [1000],
-        #'batch_size':[16,32, 64, 128, 256, 512, 1024],
-        #'batch_size': [64,128,256, 512],
-        'batch_size': [256],
-        #'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-         'hidden_layer_sizes': [64],
-        'max_iter' :[300],
-        'final_max_iter': [500],
-
-    }
-
     logging.info("***Evolving %d generations with population %d***" %
                  (generations, population))
 
@@ -360,13 +371,42 @@ def main(train_file_name,valid_file_name,test_file_name):
                     "y_validation": y_validation,
                     "X_test": X_test,
                     }
+    if MyMain:
+        generate(generations, population, nn_param_choices, dataset_dict)
+    else:
+        DevolMain(dataset_dict)
+def DevolMain(dataset_dict):
 
-    generate(generations, population, nn_param_choices, dataset_dict)
+    dataset_dict['y_train'] = to_categorical(dataset_dict['y_train'])
+    dataset_dict['y_validation'] = to_categorical(dataset_dict['y_validation'])
+    dataset = ((dataset_dict['X_train'][:10000, :], dataset_dict['y_train'][:10000, :]),
+               (dataset_dict['X_validation'][:10000, :], dataset_dict['y_validation'][:10000, :]))
+
+    # **Prepare the genome configuration**
+    # The `GenomeHandler` class handles the constraints that are imposed upon
+    # models in a particular genetic program. See `genome-handler.py`
+    # for more information.
+
+    genome_handler = GenomeHandler(max_conv_layers=0,
+                                   max_dense_layers=9,  # includes final dense layer
+                                   max_filters=256,
+                                   max_dense_nodes=2048,
+                                   input_shape=dataset_dict['X_train'].shape,
+                                   n_classes=2)
+
+    devol = DEvol(genome_handler)
+    model = devol.run(dataset=dataset,
+                      num_generations=generations,
+                      pop_size=population,
+                      epochs=200)
+
+    model.save(MODEL_NAME)
+    print(model.summary())
 
 if __name__ == '__main__':
     train_file_name = sys.argv[1]
     validate_file_name = sys.argv[2]
     test_file_name = sys.argv[3]
-    main(train_file_name,validate_file_name,test_file_name)
+    main(train_file_name,validate_file_name,test_file_name,False)
 
 
