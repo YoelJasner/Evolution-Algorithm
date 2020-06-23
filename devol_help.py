@@ -1,20 +1,7 @@
 from __future__ import print_function
-from keras.utils.np_utils import to_categorical
-import numpy as np
-from sklearn import preprocessing
-import pandas as pd
-import logging
-from optimizer import Optimizer
-from tqdm import tqdm
-import sys
-import multiprocessing
-from ctypes import  c_double
 import numpy as np
 from My_devol import MyDEvol, MyGenomeHandler
-from sklearn import preprocessing
-import pandas as pd
 from keras.utils.np_utils import to_categorical
-import datetime
 from sklearn.metrics import fbeta_score, accuracy_score, precision_score, recall_score
 
 
@@ -84,41 +71,44 @@ def devol_train_final_model(model, dataset_dict):
     print(f'Validation f-beta score {validation_beta_score}')
     print(str_header)
     print(str_header)
-    return model
+    return model, best_threshold
 
+def WriteResToFile(model,best_threshold, ds_class,file_name):
+    print(f"Write tests results to File {file_name}..")
 
-def DevolMain(dataset_dict,generations,population,MODEL_NAME):
+    y_test_pred = np.where(model.predict_proba(ds_class["X_test"])[:, 1]
+                           > best_threshold, 1, 0)
+    np.savetxt(file_name, y_test_pred.astype(int), fmt='%i', delimiter='\n')
+
+def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     # TODO: Delete after stableize
-    generations=2
-    population=2
-    dataset_dict['X_train'] = dataset_dict['X_train'][:100, :]
-    dataset_dict['y_train'] = dataset_dict['y_train'][:100, :]
-    dataset_dict['X_validation'] = dataset_dict['X_validation'][:100, :]
-    dataset_dict['y_validation'] = dataset_dict['y_validation'][:100, :]
-    dataset_dict['X_test'] = dataset_dict['X_test'][:100, :]
+    generations=1
+    population=1
+
+    num_of_s = 1000
+    dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
+    dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
+    dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
+    dataset_dict['y_validation'] = dataset_dict['y_validation'][:num_of_s, :]
+    dataset_dict['X_test'] = dataset_dict['X_test'][:num_of_s, :]
     ## TODO: until this part..
 
     dataset_dict['y_train'] = to_categorical(dataset_dict['y_train'])
     dataset_dict['y_validation'] = to_categorical(dataset_dict['y_validation'])
 
     split_dim = 4#dataset_dict['X_train'].shape[1] / 4
-    X_train_2_d = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 1)
-    X_validation_2_d = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 1)
-    X_test_2_d = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 1)
+    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 1)
+    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 1)
+    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 1)
 
-    dataset = ((X_train_2_d[:10000, :], dataset_dict['y_train'][:10000, :]),
-               (X_validation_2_d[:10000, :], dataset_dict['y_validation'][:10000, :]))
+    dataset = ((dataset_dict['X_train'][:10000, :,:], dataset_dict['y_train'][:10000, :]),
+               (dataset_dict['X_validation'][:10000, :,:], dataset_dict['y_validation'][:10000, :]))
 
-    print(X_train_2_d.shape)
-    # **Prepare the genome configuration**
-    # The `GenomeHandler` class handles the constraints that are imposed upon
-    # models in a particular genetic program. See `genome-handler.py`
-    # for more information.
     genome_handler = MyGenomeHandler(max_conv_layers=16,
                                    max_dense_layers=16,  # includes final dense layer
                                    max_filters=256,
                                    max_dense_nodes=2048,
-                                   input_shape=X_train_2_d.shape[1:],
+                                   input_shape=dataset_dict['X_train'].shape[1:],
                                    n_classes=2)
 
     devol = MyDEvol(genome_handler)
@@ -127,5 +117,8 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME):
                       pop_size=population,
                       epochs=200)
 
-    model.save(MODEL_NAME)
+
     print(model.summary())
+    model,best_t = model.devol_train_final_model(model,dataset_dict)
+    WriteResToFile(model,best_t,dataset_dict,FILE_NAME)
+    # model.save(MODEL_NAME)

@@ -6,7 +6,7 @@ from keras.layers import Activation, Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
-
+Conv_Unit=(4, 4)
 
 def fbeta_keras(y_true, y_pred, threshold_shift=0.05):
     '''
@@ -174,14 +174,14 @@ class MyGenomeHandler:
                 convolution = None
                 if input_layer:
                     convolution = Convolution2D(
-                        genome[offset + 1], (3, 3),
+                        genome[offset + 1], Conv_Unit,
                         padding='same',
                         input_shape=self.input_shape
                     )
                     input_layer = False
                 else:
                     convolution = Convolution2D(
-                        genome[offset + 1], (3, 3),
+                        genome[offset + 1], Conv_Unit,
                         padding='same'
                     )
                 model.add(convolution)

@@ -23,7 +23,7 @@ import numpy as np
 if K.backend() == 'tensorflow':
     import tensorflow as tf
 
-__all__ = ['DEvol']
+__all__ = ['MyDEvol']
 
 METRIC_OPS = [operator.__lt__, operator.__gt__]
 METRIC_OBJECTIVES = [min, max]

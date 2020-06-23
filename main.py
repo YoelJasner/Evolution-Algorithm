@@ -114,9 +114,15 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_min = np.min(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
     X_test_min = np.min(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
 
+    # X_train = np.concatenate((X_train, X_train_avg, X_train_std, X_train_max), axis=1)
+    # X_validation = np.concatenate(
+    #     (X_validation, X_validation_avg, X_validation_std, X_validation_max), axis=1)
+    # X_test = np.concatenate((X_test, X_test_avg, X_test_std, X_test_max), axis=1)
+
     X_train = np.concatenate((X_train,X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
     X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
+
 
     # X_train = np.concatenate((X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
     # X_validation = np.concatenate((X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
@@ -373,10 +379,11 @@ def main(train_file_name,valid_file_name,test_file_name,MyMain=True):
                     "y_validation": y_validation,
                     "X_test": X_test,
                     }
+    print("finish preprocessing")
     if MyMain:
         generate(generations, population, nn_param_choices, dataset_dict)
     else:
-        DevolMain(dataset_dict,generations, population, MODEL_NAME)
+        DevolMain(dataset_dict,generations, population, MODEL_NAME,FILE_NAME)
 
 if __name__ == '__main__':
     train_file_name = sys.argv[1]
