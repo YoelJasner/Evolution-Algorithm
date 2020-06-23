@@ -6,11 +6,12 @@ import sys
 import multiprocessing
 from ctypes import  c_double
 import numpy as np
-from devol import DEvol, GenomeHandler
 from sklearn import preprocessing
 import pandas as pd
 from keras.utils.np_utils import to_categorical
 import datetime
+from devol_help import DevolMain
+
 TIME_STR = str(datetime.datetime.now()).replace(" ", "#")
 FILE_NAME = TIME_STR+".txt"
 MODEL_NAME = TIME_STR+".h5"
@@ -25,17 +26,17 @@ logging.basicConfig(
 
 #### PARAM SECTION ###############3
 ###################################################################
-generations = 3  # 14  # Number of times to evole the population.
-population = 3  # 8 Number of networks in each generation.
+generations = 1  # 14  # Number of times to evole the population.
+population = 1  # 8 Number of networks in each generation.
 
 nn_param_choices = {
     # 'Network_train_sample_size': [10000],
     'Network_train_sample_size': [1000],
     # 'batch_size':[16,32, 64, 128, 256, 512, 1024],
     # 'batch_size': [64,128,256, 512],
-    'batch_size': [128],
+    'batch_size': [64],
     # 'hidden_layer_sizes': [64, 128, 256, 384, 512, 1024, 2048, 4096],
-    'hidden_layer_sizes': [32],
+    'hidden_layer_sizes': [16],
     'max_iter': [10],
     'final_max_iter': [500],
 }
@@ -153,10 +154,11 @@ def pre_process_data(X_train, X_validation, X_test,
 
     # create scaler
     if scaler_type == 'Standard':
-        scaler = preprocessing.StandardScaler().fit(X_train)
+        scaler = preprocessing.StandardScaler()
     elif scaler_type == 'Robust':
-        scaler = preprocessing.RobustScaler().fit(X_train)
+        scaler = preprocessing.RobustScaler()
 
+    scaler.fit(X_train)
     # robust scaling
     X_train = scaler.transform(X_train)
     X_validation = scaler.transform(X_validation)
@@ -374,34 +376,7 @@ def main(train_file_name,valid_file_name,test_file_name,MyMain=True):
     if MyMain:
         generate(generations, population, nn_param_choices, dataset_dict)
     else:
-        DevolMain(dataset_dict)
-def DevolMain(dataset_dict):
-
-    dataset_dict['y_train'] = to_categorical(dataset_dict['y_train'])
-    dataset_dict['y_validation'] = to_categorical(dataset_dict['y_validation'])
-    dataset = ((dataset_dict['X_train'][:10000, :], dataset_dict['y_train'][:10000, :]),
-               (dataset_dict['X_validation'][:10000, :], dataset_dict['y_validation'][:10000, :]))
-
-    # **Prepare the genome configuration**
-    # The `GenomeHandler` class handles the constraints that are imposed upon
-    # models in a particular genetic program. See `genome-handler.py`
-    # for more information.
-
-    genome_handler = GenomeHandler(max_conv_layers=0,
-                                   max_dense_layers=9,  # includes final dense layer
-                                   max_filters=256,
-                                   max_dense_nodes=2048,
-                                   input_shape=dataset_dict['X_train'].shape,
-                                   n_classes=2)
-
-    devol = DEvol(genome_handler)
-    model = devol.run(dataset=dataset,
-                      num_generations=generations,
-                      pop_size=population,
-                      epochs=200)
-
-    model.save(MODEL_NAME)
-    print(model.summary())
+        DevolMain(dataset_dict,generations, population, MODEL_NAME)
 
 if __name__ == '__main__':
     train_file_name = sys.argv[1]

@@ -77,6 +77,7 @@ def main(train_file_name,valid_file_name,test_file_name):
     row_scale=True
     raw_num_of_feature=2
 
+    ac_log_scale = log_scale
 
     df_train = pd.read_csv(train_file_name, header=None)
     df_validation = pd.read_csv(valid_file_name, header=None)
@@ -97,12 +98,12 @@ def main(train_file_name,valid_file_name,test_file_name):
 
     if row_scale:
         X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
-            rows_scale(X_train, X_validation, X_test, log_scale,raw_num_of_feature)
-        log_scale=False
+            rows_scale(X_train, X_validation, X_test, ac_log_scale,raw_num_of_feature)
+        ac_log_scale=False
     if diff_feature:
         X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
-             calc_diff_feature(X_train, X_validation, X_test,log_scale)
-        log_scale = False
+             calc_diff_feature(X_train, X_validation, X_test,ac_log_scale)
+        ac_log_scale = False
 
     train_table = np.concatenate((y_train, X_train_prev_ts), axis=1)
     validation_table = np.concatenate((y_validation, X_validation_prev_ts), axis=1)
