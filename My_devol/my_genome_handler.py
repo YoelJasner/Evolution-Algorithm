@@ -86,11 +86,14 @@ class MyGenomeHandler:
             filter_range_max = int(math.log(max_filters, 2)) + 1
         else:
             filter_range_max = 0
+        # self.optimizer = optimizers or [
+        #     'adam',
+        #     'rmsprop',
+        #     'adagrad',
+        #     'adadelta'
+        # ]
         self.optimizer = optimizers or [
-            'adam',
-            'rmsprop',
-            'adagrad',
-            'adadelta'
+            'adam'
         ]
         self.activation = activations or [
             'relu',
@@ -189,14 +192,14 @@ class MyGenomeHandler:
                 #     )
                 if input_layer:
                     convolution = Convolution1D(filters=genome[offset + 1],
-                                                kernel_size=8,#Conv_Unit,
+                                                kernel_size=3,#Conv_Unit,
                         padding='same',
                         input_shape=self.input_shape
                     )
                     input_layer = False
                 else:
                     convolution = Convolution1D(filters=genome[offset + 1],
-                                                kernel_size=8,  # Conv_Unit,
+                                                kernel_size=3,  # Conv_Unit,
                                                 padding='same')
                 model.add(convolution)
                 if genome[offset + 2]:

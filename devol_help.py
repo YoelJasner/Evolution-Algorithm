@@ -50,7 +50,7 @@ def devol_train_final_model(model, dataset_dict):
         'validation_data':(dataset_dict['X_validation'],
                            dataset_dict['y_validation']),
         'callbacks': [
-            EarlyStopping(monitor='val_loss', patience=2, verbose=0)
+            EarlyStopping(monitor='val_loss', patience=5, verbose=0)
         ]
     }
 
@@ -94,11 +94,11 @@ def WriteResToFile(model,best_threshold, ds_class,file_name):
 
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     # TODO: Delete after stableize
-    generations=1
-    population=1
+    # generations=1
+    # population=1
 
 
-    num_of_s = 10000
+    num_of_s = 100000
     # dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
     # dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
     # dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
@@ -129,12 +129,13 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     #                                max_filters=256,
     #                                max_dense_nodes=2048,
     #                                input_shape=s[1:])
-    genome_handler = MyGenomeHandler(max_conv_layers=9,
-                                     max_dense_layers=9,  # includes final dense layer
+
+    genome_handler = MyGenomeHandler(max_conv_layers=6,
+                                     max_dense_layers=3,  # includes final dense layer
                                      max_filters=256,
                                      max_dense_nodes=2048,
                                      input_shape=s[1:])
-    epochs = 200
+    epochs = 5
     devol = MyDEvol(genome_handler)
     model = devol.run(dataset=dataset,
                       num_generations=generations,
