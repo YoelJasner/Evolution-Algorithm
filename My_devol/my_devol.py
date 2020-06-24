@@ -165,7 +165,7 @@ class MyDEvol:
             'y': self.y_train,
             'validation_split': 0.1,
             'epochs': epochs,
-            'verbose': 1,
+            'verbose': 0,
             'callbacks': [
                 EarlyStopping(monitor='val_loss', patience=1, verbose=1)
             ]

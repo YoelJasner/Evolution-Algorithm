@@ -6,7 +6,7 @@ from keras.layers import Activation, Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D,Convolution1D,MaxPooling1D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
-
+kernel_size = 4
 
 Conv_Unit=(4, 4)
 
@@ -86,15 +86,15 @@ class MyGenomeHandler:
             filter_range_max = int(math.log(max_filters, 2)) + 1
         else:
             filter_range_max = 0
-        self.optimizer = optimizers or [
-            'adam',
-            'rmsprop',
-            'adagrad',
-            'adadelta'
-        ]
         # self.optimizer = optimizers or [
-        #     'adam'
+        #     'adam',
+        #     'rmsprop',
+        #     'adagrad',
+        #     'adadelta'
         # ]
+        self.optimizer = optimizers or [
+            'adam'
+        ]
         self.activation = activations or [
             'relu',
             'sigmoid',
@@ -192,14 +192,14 @@ class MyGenomeHandler:
                 #     )
                 if input_layer:
                     convolution = Convolution1D(filters=genome[offset + 1],
-                                                kernel_size=4,#Conv_Unit,
+                                                kernel_size=kernel_size,#Conv_Unit,
                         padding='same',
                         input_shape=self.input_shape
                     )
                     input_layer = False
                 else:
                     convolution = Convolution1D(filters=genome[offset + 1],
-                                                kernel_size=4,  # Conv_Unit,
+                                                kernel_size=kernel_size,  # Conv_Unit,
                                                 padding='same')
                 model.add(convolution)
                 if genome[offset + 2]:
@@ -232,7 +232,7 @@ class MyGenomeHandler:
                 model.add(Dropout(float(genome[offset + 4] / 20.0)))
             offset += self.dense_layer_size
         
-        model.add(Dense(1, activation='softmax'))
+        model.add(Dense(1, activation='sigmoid'))
         model.compile(loss='binary_crossentropy',
             optimizer=self.optimizer[genome[offset]],
             metrics=["accuracy"]) #metrics=[fbeta_keras])

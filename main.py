@@ -26,7 +26,7 @@ logging.basicConfig(
 
 #### PARAM SECTION ###############3
 ###################################################################
-generations = 5  # 14  # Number of times to evole the population.
+generations = 4  # 14  # Number of times to evole the population.
 population = 4  # 8 Number of networks in each generation.
 
 nn_param_choices = {
