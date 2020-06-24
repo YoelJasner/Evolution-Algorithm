@@ -45,12 +45,12 @@ def devol_train_final_model(model, dataset_dict):
         'x': dataset_dict['X_train'],
         'y': dataset_dict['y_train'],
         'validation_split': 0.1,
-        'epochs': 500,
+        'epochs': 300,
         'verbose': 1,
         'validation_data':(dataset_dict['X_validation'],
                            dataset_dict['y_validation']),
         'callbacks': [
-            EarlyStopping(monitor='val_loss', patience=1, verbose=1)
+            EarlyStopping(monitor='val_loss', patience=2, verbose=0)
         ]
     }
 
@@ -58,7 +58,7 @@ def devol_train_final_model(model, dataset_dict):
 
     y_val_proba = model.predict_proba(dataset_dict["X_validation"])
     y_train_proba = model.predict_proba(dataset_dict["X_train"])
-    print(y_val_proba)
+
     best_threshold = get_best_threshold(y_val_proba,
                                dataset_dict["y_validation"],
                                y_train_proba,
@@ -97,7 +97,8 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     generations=1
     population=1
 
-    num_of_s = 1000
+
+    num_of_s = 10000
     # dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
     # dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
     # dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
@@ -110,11 +111,11 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
 
 
 
-    split_dim = 4#dataset_dict['X_train'].shape[1] / 4
-    # dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 1)
-    # dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 1)
-    # dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 1)
-    #
+    split_dim = dataset_dict['X_train'].shape[1] / 4
+    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 1)
+    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 1)
+    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 1)
+
     print(dataset_dict['X_train'].shape)
     print(dataset_dict['X_validation'].shape)
     print(dataset_dict['X_test'].shape)
@@ -123,14 +124,17 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
                (dataset_dict['X_validation'][:num_of_s, :],
                 dataset_dict['y_validation'][:num_of_s, :]))
     s = dataset_dict['X_train'].shape
-    #i_shape=(s[1],s[2],1)
-    genome_handler = MyGenomeHandler(max_conv_layers=0,
-                                   max_dense_layers=4,  # includes final dense layer
-                                   max_filters=8,#256,
-                                   max_dense_nodes=128,#2048
-                                   input_shape=s[1:])
-
-    epochs = 3#200
+    # genome_handler = MyGenomeHandler(max_conv_layers=3,
+    #                                max_dense_layers=9,  # includes final dense layer
+    #                                max_filters=256,
+    #                                max_dense_nodes=2048,
+    #                                input_shape=s[1:])
+    genome_handler = MyGenomeHandler(max_conv_layers=9,
+                                     max_dense_layers=9,  # includes final dense layer
+                                     max_filters=256,
+                                     max_dense_nodes=2048,
+                                     input_shape=s[1:])
+    epochs = 200
     devol = MyDEvol(genome_handler)
     model = devol.run(dataset=dataset,
                       num_generations=generations,

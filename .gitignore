@@ -1,4 +1,7 @@
 log.txt
+best-model.h5
+*.csv
+*.txt
 venv/*
 */__pycache__/*
 */*/__pycache__/*

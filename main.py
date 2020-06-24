@@ -178,7 +178,7 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     :return: X_train, y_train, X_val, y_val,
     '''
 
-    bFeatureDiff = False
+    bFeatureDiff = True
     log_scale = True
     scaler_type = 'Standard'
     feature_extract = True

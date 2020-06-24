@@ -3,12 +3,12 @@ import random as rand
 import math
 from keras.models import Sequential
 from keras.layers import Activation, Dense, Dropout, Flatten
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.convolutional import Convolution2D, MaxPooling2D,Convolution1D,MaxPooling1D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
 
 
-Conv_Unit=(3, 3)
+Conv_Unit=(4, 4)
 
 def fbeta_keras(y_true, y_pred, threshold_shift=0.05):
     '''
@@ -170,20 +170,34 @@ class MyGenomeHandler:
             dim = min(self.input_shape[:-1]) # keep track of smallest dimension
         input_layer = True
         for i in range(self.convolution_layers):
+            print(f"{i} The Dim {dim}")
+
             if genome[offset]:
                 convolution = None
+
+                # if input_layer:
+                #     convolution = Convolution2D(
+                #         genome[offset + 1], (3,3),#Conv_Unit,
+                #         padding='same',
+                #         input_shape=self.input_shape
+                #     )
+                #     input_layer = False
+                # else:
+                #     convolution = Convolution2D(
+                #         genome[offset + 1], (3,3),#Conv_Unit,
+                #         padding='same'
+                #     )
                 if input_layer:
-                    convolution = Convolution2D(
-                        genome[offset + 1], Conv_Unit,
+                    convolution = Convolution1D(filters=genome[offset + 1],
+                                                kernel_size=8,#Conv_Unit,
                         padding='same',
                         input_shape=self.input_shape
                     )
                     input_layer = False
                 else:
-                    convolution = Convolution2D(
-                        genome[offset + 1], Conv_Unit,
-                        padding='same'
-                    )
+                    convolution = Convolution1D(filters=genome[offset + 1],
+                                                kernel_size=8,  # Conv_Unit,
+                                                padding='same')
                 model.add(convolution)
                 if genome[offset + 2]:
                     model.add(BatchNormalization())
@@ -192,7 +206,8 @@ class MyGenomeHandler:
                 max_pooling_type = genome[offset + 5]
                 # must be large enough for a convolution
                 if max_pooling_type == 1 and dim >= 5:
-                    model.add(MaxPooling2D(pool_size=(2, 2), padding="same"))
+                    #model.add(MaxPooling2D(pool_size=(2, 2), padding="same"))
+                    model.add(MaxPooling1D(pool_size=2, padding="same"))
                     dim = int(math.ceil(dim / 2))
             offset += self.convolution_layer_size
 

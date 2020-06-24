@@ -205,7 +205,7 @@ class MyDEvol:
     def _handle_broken_model(self, model, error):
         del model
 
-        n = self.genome_handler.n_classes
+        n = 1 # TODO maybe 2
         loss = log_loss(np.concatenate(([1], np.zeros(n - 1))), np.ones(n) / n)
         accuracy = 1 / n
         gc.collect()
