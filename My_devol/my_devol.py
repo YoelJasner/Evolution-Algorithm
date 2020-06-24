@@ -19,7 +19,7 @@ from tensorflow.keras.models import load_model
 import tensorflow.keras.backend as K
 from sklearn.metrics import log_loss
 import numpy as np
-
+from My_devol.my_genome_handler import fbeta_keras
 
 if K.backend() == 'tensorflow':
     import tensorflow as tf
@@ -140,7 +140,7 @@ class MyDEvol:
                                             gen,
                                             num_generations)
 
-        return load_model('best-model.h5')
+        return load_model('best-model.h5',custom_objects={"fbeta_keras":fbeta_keras})
 
     def _reproduce(self, pop, gen):
         members = []

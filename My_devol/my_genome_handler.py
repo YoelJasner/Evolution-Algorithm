@@ -8,8 +8,6 @@ from keras.layers.normalization import BatchNormalization
 from keras import backend as K
 kernel_size = 4
 
-Conv_Unit=(4, 4)
-
 def fbeta_keras(y_true, y_pred, threshold_shift=0.05):
     '''
     f_beta score implematation using keras
@@ -93,7 +91,8 @@ class MyGenomeHandler:
         #     'adadelta'
         # ]
         self.optimizer = optimizers or [
-            'adam'
+            'adam',
+            'adadelta'
         ]
         self.activation = activations or [
             'relu',
@@ -173,7 +172,6 @@ class MyGenomeHandler:
             dim = min(self.input_shape[:-1]) # keep track of smallest dimension
         input_layer = True
         for i in range(self.convolution_layers):
-            print(f"{i} The Dim {dim}")
 
             if genome[offset]:
                 convolution = None
@@ -235,7 +233,7 @@ class MyGenomeHandler:
         model.add(Dense(1, activation='sigmoid'))
         model.compile(loss='binary_crossentropy',
             optimizer=self.optimizer[genome[offset]],
-            metrics=["accuracy"]) #metrics=[fbeta_keras])
+            metrics=[fbeta_keras])#metrics=["accuracy"])
         return model
 
     def genome_representation(self):

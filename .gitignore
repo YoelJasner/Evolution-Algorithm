@@ -1,5 +1,6 @@
 log.txt
 best-model.h5
+*.h5
 *.csv
 *.txt
 venv/*

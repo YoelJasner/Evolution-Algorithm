@@ -26,8 +26,8 @@ logging.basicConfig(
 
 #### PARAM SECTION ###############3
 ###################################################################
-generations = 4  # 14  # Number of times to evole the population.
-population = 4  # 8 Number of networks in each generation.
+generations = 2  # 14  # Number of times to evole the population.
+population = 2  # 8 Number of networks in each generation.
 
 nn_param_choices = {
     # 'Network_train_sample_size': [10000],
