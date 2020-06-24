@@ -178,7 +178,7 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     :return: X_train, y_train, X_val, y_val,
     '''
 
-    bFeatureDiff = True
+    bFeatureDiff = False
     log_scale = True
     scaler_type = 'Standard'
     feature_extract = True
@@ -217,9 +217,9 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     #split to X, y
     startPoint = 0
     X_train = df_train.loc[:, df_train.columns > startPoint].values
-    y_train = df_train.loc[:, df_train.columns == 0].values
+    y_train = df_train.loc[:, df_train.columns == 0].values.astype(int)
     X_validation = df_validation.loc[:, df_validation.columns > startPoint].values
-    y_validation = df_validation.loc[:, df_validation.columns == 0].values
+    y_validation = df_validation.loc[:, df_validation.columns == 0].values.astype(int)
     X_test = df_test.loc[:, df_test.columns > startPoint].values
 
     X_train_scale, X_validation_scale, X_test_scale = \

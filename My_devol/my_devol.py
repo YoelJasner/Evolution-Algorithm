@@ -20,8 +20,12 @@ import tensorflow.keras.backend as K
 from sklearn.metrics import log_loss
 import numpy as np
 
+
 if K.backend() == 'tensorflow':
     import tensorflow as tf
+    # tf.compat.v1.disable_eager_execution()
+    # sess2 = tf.v1.compat.v1Session()
+    # K.set_session(sess2)
 
 __all__ = ['MyDEvol']
 
@@ -171,7 +175,8 @@ class MyDEvol:
             fit_params['validation_data'] = (self.x_val, self.y_val)
         try:
             model.fit(**fit_params)
-            loss, accuracy = model.evaluate(self.x_test, self.y_test, verbose=0)
+            loss, accuracy = model.evaluate(self.x_test, self.y_test, verbose=1)
+
         except Exception as e:
             loss, accuracy = self._handle_broken_model(model, e)
 
@@ -209,8 +214,9 @@ class MyDEvol:
             K.clear_session()
             tf.compat.v1.reset_default_graph()
 
+
         print('An error occurred and the model could not train:')
-        print(error)
+        print('The error '+error)
         print(('Model assigned poor score. Please ensure that your model'
                'constraints live within your computational resources.'))
         return loss, accuracy

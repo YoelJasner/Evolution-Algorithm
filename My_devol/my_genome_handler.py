@@ -6,7 +6,9 @@ from keras.layers import Activation, Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
-Conv_Unit=(4, 4)
+
+
+Conv_Unit=(3, 3)
 
 def fbeta_keras(y_true, y_pred, threshold_shift=0.05):
     '''
@@ -53,7 +55,7 @@ class MyGenomeHandler:
     """
 
     def __init__(self, max_conv_layers, max_dense_layers, max_filters,
-                 max_dense_nodes, input_shape, n_classes,
+                 max_dense_nodes, input_shape,
                  batch_normalization=True, dropout=True, max_pooling=True,
                  optimizers=None, activations=None):
         """
@@ -67,7 +69,6 @@ class MyGenomeHandler:
                     convolutional layer
             max_dense_nodes: The maximum number of nodes in a dense layer
             input_shape: The shape of the input
-            n_classes: The number of classes
             batch_normalization (bool): whether the GP should include batch norm
             dropout (bool): whether the GP should include dropout
             max_pooling (bool): whether the GP should include max pooling layers
@@ -125,7 +126,6 @@ class MyGenomeHandler:
         self.dense_layers = max_dense_layers - 1 # this doesn't include the softmax layer, so -1
         self.dense_layer_size = len(self.dense_layer_shape)
         self.input_shape = input_shape
-        self.n_classes = n_classes
 
     def convParam(self, i):
         key = self.convolutional_layer_shape[i]
@@ -214,10 +214,10 @@ class MyGenomeHandler:
                 model.add(Dropout(float(genome[offset + 4] / 20.0)))
             offset += self.dense_layer_size
         
-        model.add(Dense(self.n_classes, activation='softmax'))
-        model.compile(loss='categorical_crossentropy',
+        model.add(Dense(1, activation='softmax'))
+        model.compile(loss='binary_crossentropy',
             optimizer=self.optimizer[genome[offset]],
-            metrics=[fbeta_keras])
+            metrics=["accuracy"]) #metrics=[fbeta_keras])
         return model
 
     def genome_representation(self):
