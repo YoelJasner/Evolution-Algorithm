@@ -94,16 +94,16 @@ def WriteResToFile(model,best_threshold, ds_class,file_name):
 
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     # TODO: Delete after stableize
-    # generations=1
-    # population=1
+    generations=1
+    population=1
 
 
     num_of_s = 100000
-    # dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
-    # dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
-    # dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
-    # dataset_dict['y_validation'] = dataset_dict['y_validation'][:num_of_s, :]
-    # dataset_dict['X_test'] = dataset_dict['X_test'][:num_of_s, :]
+    dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
+    dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
+    dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
+    dataset_dict['y_validation'] = dataset_dict['y_validation'][:num_of_s, :]
+    dataset_dict['X_test'] = dataset_dict['X_test'][:num_of_s, :]
     ## TODO: until this part..
 
     # dataset_dict['y_train'] = to_categorical(dataset_dict['y_train'])
@@ -112,9 +112,9 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
 
 
     split_dim = dataset_dict['X_train'].shape[1] / 4
-    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 1)
-    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 1)
-    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 1)
+    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 2)
+    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 2)
+    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 2)
 
     print(dataset_dict['X_train'].shape)
     print(dataset_dict['X_validation'].shape)
@@ -124,17 +124,19 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
                (dataset_dict['X_validation'][:num_of_s, :],
                 dataset_dict['y_validation'][:num_of_s, :]))
     s = dataset_dict['X_train'].shape
-    # genome_handler = MyGenomeHandler(max_conv_layers=3,
-    #                                max_dense_layers=9,  # includes final dense layer
-    #                                max_filters=256,
-    #                                max_dense_nodes=2048,
-    #                                input_shape=s[1:])
+    # genome_handler = MyGenomeHandler(max_conv_layers=8,
+    #                                  max_dense_layers=6,  # includes final dense layer
+    #                                  max_filters=256,
+    #                                  max_dense_nodes=4096,
+    #                                  input_shape=s[1:],
+    #                                  dropout=False)                                input_shape=s[1:])
 
-    genome_handler = MyGenomeHandler(max_conv_layers=6,
-                                     max_dense_layers=3,  # includes final dense layer
-                                     max_filters=256,
-                                     max_dense_nodes=2048,
-                                     input_shape=s[1:])
+    genome_handler = MyGenomeHandler(max_conv_layers=8,
+                                     max_dense_layers=5,  # includes final dense layer
+                                     max_filters=128,
+                                     max_dense_nodes=4096,
+                                     input_shape=s[1:],
+                                     dropout=False)
     epochs = 5
     devol = MyDEvol(genome_handler)
     model = devol.run(dataset=dataset,
