@@ -146,8 +146,8 @@ def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patienc
 
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     # TODO: Delete after stableize
-    generations=10
-    population=4
+    generations=1
+    population=7
 
 
     num_of_s = 600000
@@ -171,7 +171,7 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
 
     genome_handler = MyGenomeHandler(max_conv_layers=2,
                                      max_dense_layers=2,  # includes final dense layer
-                                     max_filters=40,
+                                     max_filters=32,
                                      max_dense_nodes=128,
                                      input_shape=s[1:],
                                      dropout=True)

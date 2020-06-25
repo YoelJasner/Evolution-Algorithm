@@ -53,15 +53,14 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
 
     weight_coeff = np.array([fc] * first_apear + [fc**2] * 6 + [fc**3] * 6 + [fc**4] * 6 + [fc**5] * 6)
 
-    # fc = 1.014
-    # arr_len = int(30-(X_train.shape[1] /n_f %2))
-    # weight_coeff = np.array([fc**i for i in range(arr_len)])
+
 
     weight_coeff = weight_coeff.astype(float) / weight_coeff.sum()
 
     X_train_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
     X_validation_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
     X_test_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+
 
     X_train_std = np.std(np.stack(np.split(X_train, X_train.shape[1]/n_f, 1), 1), axis=1)
     X_validation_std = np.std(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
@@ -75,14 +74,59 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_min = np.min(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
     X_test_min = np.min(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
 
-    X_train = np.concatenate((X_train,X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
-    X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
-    X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
 
-    # X_train = np.concatenate((X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
-    # X_validation = np.concatenate(
-    #     (X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
-    # X_test = np.concatenate((X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
+
+    # X_train = np.concatenate((X_train,X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
+    # X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
+    # X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
+    #return X_train, X_validation, X_test
+    fc_2 = 1.016
+    arr_len = int(30-(X_train.shape[1] /n_f %2))
+    weight_coeff_2 = np.array([fc_2**i for i in range(arr_len)])
+
+    X_train_avg_2 = np.average(weights=weight_coeff_2, a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_avg_2 = np.average(weights=weight_coeff_2,
+                                  a=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_avg_2 = np.average(weights=weight_coeff_2, a=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+
+    X_train_mean = np.mean(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_mean = np.mean(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_mean = np.mean(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+
+    X_train_median = np.median(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_median = np.median(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_median = np.median(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+
+    X_train_var = X_train_std**2
+    X_validation_var = X_validation_std**2
+    X_test_var = X_test_std**2
+
+    X_train_argmax = np.argmax(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_argmax = np.argmax(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_argmax = np.argmax(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+
+    X_train_argmin = np.argmin(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_argmin = np.argmin(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_argmin = np.argmin(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+
+    X_train = np.concatenate((X_train,
+                              X_train_std,X_train_var,
+                              X_train_mean,X_train_median,
+                              #X_train_argmax, X_train_argmin,
+                              X_train_avg, X_train_avg_2,
+                              X_train_min, X_train_max), axis=1)
+    X_validation = np.concatenate((X_validation,
+                              X_validation_std,X_validation_var,
+                              X_validation_mean, X_validation_median,
+                              #X_validation_argmax, X_validation_argmin,
+                              X_validation_avg, X_validation_avg_2,
+                              X_validation_min, X_validation_max), axis=1)
+    X_test = np.concatenate((X_test,
+                                   X_test_std, X_test_var,
+                                   X_test_mean, X_test_median,
+                                   #X_test_argmax, X_test_argmin,
+                                   X_test_avg, X_test_avg_2,
+                                   X_test_min, X_test_max), axis=1)
 
     return X_train, X_validation, X_test
 
@@ -111,6 +155,8 @@ def pre_process_data(X_train, X_validation, X_test,
         scaler = preprocessing.StandardScaler()
     elif scaler_type == 'Robust':
         scaler = preprocessing.RobustScaler()
+    elif scaler_type == 'MinMax':
+        scaler = preprocessing.MinMaxScaler()
 
     scaler.fit(X_train)
     # robust scaling
@@ -127,8 +173,8 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     '''
 
     bFeatureDiff = True
-    log_scale = False
-    scaler_type = 'Standard'
+    log_scale = True
+    scaler_type = 'Robust'
     feature_extract = True
     subModelFeatures = False
     RowScale = False
@@ -186,25 +232,25 @@ def main(train_file_name,valid_file_name,test_file_name):
 
 
     print("finish preprocessing")
-    f_scorer_full = make_scorer(fbeta_score, beta=0.125)
-    f_scorer_model1 = make_scorer(fbeta_score, beta=0.25)
-    f_scorer_model2 = make_scorer(fbeta_score, beta=0.125)
-    MAX_D = 5
+    f_scorer_full = make_scorer(fbeta_score, beta=0.14)
+    f_scorer_model1 = make_scorer(fbeta_score, beta=0.14)
+    f_scorer_model2 = make_scorer(fbeta_score, beta=0.14)
+    MAX_D = 6
     MAX_ITER = 150
-    L_R_full = 0.08
-    L_R = 0.06
-    N_ITER = 10
+    L_R_full = 0.075
+    L_R = 0.07
+    N_ITER = 15
     V_F = None
 
     full_model = HistGradientBoostingClassifier(scoring=f_scorer_full,
                                                 max_depth=5,
                                                 max_iter=MAX_ITER,
                                                 learning_rate=L_R_full,
-                                                validation_fraction = V_F,
+                                                validation_fraction = None,
                                                 verbose=0)
 
     model_1 = HistGradientBoostingClassifier(scoring=f_scorer_model1,
-                                                max_depth=4,
+                                                max_depth=5,
                                                 max_iter=MAX_ITER,
                                                 learning_rate=0.08,
                                                 n_iter_no_change=N_ITER,
@@ -218,6 +264,7 @@ def main(train_file_name,valid_file_name,test_file_name):
                                                 n_iter_no_change=N_ITER,
                                                 validation_fraction = V_F,
                                                 verbose=0)
+
 
     X_train_4f = np.stack(np.split(X_train, X_train.shape[1] / 4, 1), 1)
     X_validation_4f = np.stack(np.split(X_validation, X_validation.shape[1] / 4, 1), 1)
@@ -293,6 +340,7 @@ def main(train_file_name,valid_file_name,test_file_name):
         y_val_list.append(y_val_pred)
         y_test_list.append(y_test_pred)
         print(str_header)
+        print(f"Using threshold {best_threshold}")
         print(str_header)
         print(c_name+ ' Train accuracy', accuracy_score(c_data_set["y_train"], y_train_pred))
         print(c_name+ ' Validation accuracy', accuracy_score(c_data_set["y_validation"], y_val_pred))
