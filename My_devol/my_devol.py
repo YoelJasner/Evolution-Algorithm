@@ -150,7 +150,10 @@ class MyDEvol:
             members.append(self._crossover(pop.select(), pop.select()))
 
         # best models survive automatically
-        members += pop.get_best(len(pop) - int(len(pop) * 0.95))
+        # At list one of the members used elitisem..
+        elitisem_num = max(1,int(len(pop) * 0.05))
+
+        members += pop.get_best(elitisem_num)
 
         # randomly mutate
         for imem, mem in enumerate(members):

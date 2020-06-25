@@ -4,8 +4,7 @@ from My_devol import MyDEvol, MyGenomeHandler
 from My_devol.my_genome_handler import fbeta_keras
 from sklearn.metrics import fbeta_score, accuracy_score, precision_score, recall_score
 from tensorflow.keras.callbacks import EarlyStopping
-
-
+from tensorflow.keras.models import load_model
 
 def get_best_threshold(y_val_proba, y_validation, y_train_proba, y_train):
     best_threshold = 0.5
@@ -35,7 +34,7 @@ def get_best_threshold(y_val_proba, y_validation, y_train_proba, y_train):
     print(header_note)
     return best_threshold
 
-def devol_train_final_model(model, dataset_dict):
+def devol_train_final_model(model, dataset_dict,EarlyStopping_patience=5):
     str_header = "#"*80
     str_header2 = "$" * 80
     print(str_header)
@@ -51,7 +50,9 @@ def devol_train_final_model(model, dataset_dict):
         'validation_data':(dataset_dict['X_validation'],
                            dataset_dict['y_validation']),
         'callbacks': [
-            EarlyStopping(monitor='val_loss', patience=5, verbose=0)
+            EarlyStopping(monitor='val_loss',
+                          patience=EarlyStopping_patience,
+                          verbose=0)
         ]
     }
 
@@ -118,13 +119,38 @@ def WriteResToFile(model,best_threshold, ds_class,file_name):
                            > best_threshold, 1, 0)
     np.savetxt(file_name, y_test_pred.astype(int), fmt='%i', delimiter='\n')
 
+def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patience):
+    ge = "@"*80
+
+    suffix = f"#pati-{EarlyStopping_patience}"
+    new_MODEL_NAME = MODEL_NAME.replace(".h5", f"{suffix}.h5")
+    new_FILE_NAME = FILE_NAME.replace(".txt", f"{suffix}.txt")
+
+    print(ge)
+    print(ge)
+    print(f"Run over exist's model {new_MODEL_NAME}")
+    print(ge)
+
+    split_dim = dataset_dict['X_train'].shape[1] / 4
+    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 2)
+    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 2)
+    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 2)
+
+    print("Loading model {MODEL_NAME}")
+    model = load_model(MODEL_NAME, custom_objects={"fbeta_keras": fbeta_keras})
+    print(model.summary())
+    model,best_t = devol_train_final_model(model,dataset_dict)
+    WriteResToFile(model,best_t,dataset_dict,new_FILE_NAME)
+    model.save(new_MODEL_NAME)
+
+
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     # TODO: Delete after stableize
-    generations=4
-    population=4
+    generations=10
+    population=7
 
 
-    num_of_s = 100000
+    num_of_s = 400000
     # dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
     # dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
     # dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
@@ -137,19 +163,16 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 2)
     dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 2)
 
-    print(dataset_dict['X_train'].shape)
-    print(dataset_dict['X_validation'].shape)
-    print(dataset_dict['X_test'].shape)
     dataset = ((dataset_dict['X_train'][:num_of_s, :],
                 dataset_dict['y_train'][:num_of_s, :]),
                (dataset_dict['X_validation'][:num_of_s, :],
                 dataset_dict['y_validation'][:num_of_s, :]))
     s = dataset_dict['X_train'].shape
 
-    genome_handler = MyGenomeHandler(max_conv_layers=3,
-                                     max_dense_layers=3,  # includes final dense layer
-                                     max_filters=70,
-                                     max_dense_nodes=164,
+    genome_handler = MyGenomeHandler(max_conv_layers=2,
+                                     max_dense_layers=2,  # includes final dense layer
+                                     max_filters=25,
+                                     max_dense_nodes=100,
                                      input_shape=s[1:],
                                      dropout=True)
     epochs = 6

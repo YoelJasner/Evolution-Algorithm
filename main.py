@@ -10,11 +10,16 @@ from sklearn import preprocessing
 import pandas as pd
 from keras.utils.np_utils import to_categorical
 import datetime
-from devol_help import DevolMain
+from devol_help import DevolMain, DevolTrainExistModel
 
 TIME_STR = str(datetime.datetime.now()).replace(" ", "#")
 FILE_NAME = TIME_STR+".txt"
 MODEL_NAME = TIME_STR+".h5"
+RUN_DEVOL = True
+RUN_AGAIN = True
+R_STR = "2020-06-24#22:26:00.228516"
+R_FILE_NAME = R_STR+".txt"
+R_MODEL_NAME = R_STR+".h5"
 
 # Setup logging.
 logging.basicConfig(
@@ -365,7 +370,7 @@ def print_networks(networks):
     for network in networks:
         network.print_network()
 
-def main(train_file_name,valid_file_name,test_file_name,MyMain=True):
+def main(train_file_name,valid_file_name,test_file_name):
     """Evolve a network."""
     logging.info("***Evolving %d generations with population %d***" %
                  (generations, population))
@@ -380,8 +385,10 @@ def main(train_file_name,valid_file_name,test_file_name,MyMain=True):
                     "X_test": X_test,
                     }
     print("finish preprocessing")
-    if MyMain:
+    if not RUN_DEVOL:
         generate(generations, population, nn_param_choices, dataset_dict)
+    elif RUN_AGAIN:
+        DevolTrainExistModel(dataset_dict, R_MODEL_NAME, R_FILE_NAME,10)
     else:
         DevolMain(dataset_dict,generations, population, MODEL_NAME,FILE_NAME)
 
@@ -389,6 +396,6 @@ if __name__ == '__main__':
     train_file_name = sys.argv[1]
     validate_file_name = sys.argv[2]
     test_file_name = sys.argv[3]
-    main(train_file_name,validate_file_name,test_file_name,False)
+    main(train_file_name,validate_file_name,test_file_name)
 
 

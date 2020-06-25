@@ -8,7 +8,7 @@ from keras.layers.normalization import BatchNormalization
 from keras import backend as K
 kernel_size = 4
 
-def fbeta_keras(y_true, y_pred, threshold_shift=0.05):
+def fbeta_keras(y_true, y_pred, threshold_shift=0.00):
     '''
     f_beta score implematation using keras
     :param y_true: true label
@@ -16,7 +16,7 @@ def fbeta_keras(y_true, y_pred, threshold_shift=0.05):
     :param threshold_shift:
     :return: calculate f0.25 score
     '''
-    beta = 0.25
+    beta = 0.125
 
     # just in case of hipster activation at the final layer
     y_pred = K.clip(y_pred, 0, 1)
@@ -91,8 +91,7 @@ class MyGenomeHandler:
         #     'adadelta'
         # ]
         self.optimizer = optimizers or [
-            'adam',
-            'adadelta'
+            'adam'
         ]
         self.activation = activations or [
             'relu',
