@@ -34,7 +34,7 @@ def get_best_threshold(y_val_proba, y_validation, y_train_proba, y_train):
     print(header_note)
     return best_threshold
 
-def devol_train_final_model(model, dataset_dict,EarlyStopping_patience=5):
+def devol_train_final_model(model, dataset_dict,EarlyStopping_patience=8):
     str_header = "#"*80
     str_header2 = "$" * 80
     print(str_header)
@@ -147,10 +147,10 @@ def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patienc
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     # TODO: Delete after stableize
     generations=10
-    population=7
+    population=4
 
 
-    num_of_s = 400000
+    num_of_s = 600000
     # dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
     # dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
     # dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
@@ -171,8 +171,8 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
 
     genome_handler = MyGenomeHandler(max_conv_layers=2,
                                      max_dense_layers=2,  # includes final dense layer
-                                     max_filters=25,
-                                     max_dense_nodes=100,
+                                     max_filters=40,
+                                     max_dense_nodes=128,
                                      input_shape=s[1:],
                                      dropout=True)
     epochs = 6

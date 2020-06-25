@@ -17,7 +17,7 @@ FILE_NAME = TIME_STR+".txt"
 MODEL_NAME = TIME_STR+".h5"
 RUN_DEVOL = True
 RUN_AGAIN = True
-R_STR = "2020-06-24#22:26:00.228516"
+R_STR = "2020-06-25#07:56:10.749278"
 R_FILE_NAME = R_STR+".txt"
 R_MODEL_NAME = R_STR+".h5"
 
@@ -388,7 +388,7 @@ def main(train_file_name,valid_file_name,test_file_name):
     if not RUN_DEVOL:
         generate(generations, population, nn_param_choices, dataset_dict)
     elif RUN_AGAIN:
-        DevolTrainExistModel(dataset_dict, R_MODEL_NAME, R_FILE_NAME,10)
+        DevolTrainExistModel(dataset_dict, R_MODEL_NAME, R_FILE_NAME,6)
     else:
         DevolMain(dataset_dict,generations, population, MODEL_NAME,FILE_NAME)
 

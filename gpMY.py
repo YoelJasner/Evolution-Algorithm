@@ -200,7 +200,7 @@ def get_best_threshold(y_val_proba, y_validation):
     best_threshold = 0.5
     best_fbeta_score_valid = 0
     beta = 0.25
-    for threshold in np.arange(0.5, 0.8, 0.0025):
+    for threshold in np.arange(0.5, 0.8, 0.001):
         y_val_pred = np.where(y_val_proba[:, 1] > threshold, 1, 0)
 
         curr_validation_beta_score = fbeta_score(y_validation, y_val_pred, beta=beta)

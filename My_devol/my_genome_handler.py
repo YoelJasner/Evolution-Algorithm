@@ -6,7 +6,7 @@ from keras.layers import Activation, Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D,Convolution1D,MaxPooling1D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
-kernel_size = 4
+kernel_size = 5
 
 def fbeta_keras(y_true, y_pred, threshold_shift=0.00):
     '''
