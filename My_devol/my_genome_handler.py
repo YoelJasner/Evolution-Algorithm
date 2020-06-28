@@ -16,7 +16,7 @@ def fbeta_keras(y_true, y_pred, threshold_shift=0.00):
     :param threshold_shift:
     :return: calculate f0.25 score
     '''
-    beta = 0.125
+    beta = 0.25
 
     # just in case of hipster activation at the final layer
     y_pred = K.clip(y_pred, 0, 1)
@@ -207,7 +207,7 @@ class MyGenomeHandler:
                 # must be large enough for a convolution
                 if max_pooling_type == 1 and dim >= 5:
                     #model.add(MaxPooling2D(pool_size=(2, 2), padding="same"))
-                    model.add(MaxPooling1D(pool_size=2, padding="same"))
+                    model.add(MaxPooling1D(pool_size=3, padding="same"))
                     dim = int(math.ceil(dim / 2))
             offset += self.convolution_layer_size
 

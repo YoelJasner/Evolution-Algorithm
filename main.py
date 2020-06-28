@@ -48,26 +48,6 @@ nn_param_choices = {
 ###################################################################
 ###################################################################
 ###################################################################
-def rows_scale(X_train, X_validation, X_test):
-
-    X_train_4_f = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
-    X_validation_4_f = np.stack(np.split(X_validation, X_validation.shape[1]/4, 1), 1)
-    X_test_4_f = np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1)
-
-    for row in X_train_4_f:
-        preprocessing.scale(row,copy=False)
-    for row in X_validation_4_f:
-        preprocessing.scale(row,copy=False)
-    for row in X_test_4_f:
-        preprocessing.scale(row,copy=False)
-    X_train_4_f = X_train_4_f.reshape((X_train.shape))
-    X_validation_4_f = X_validation_4_f.reshape((X_validation.shape))
-    X_test_4_f = X_test_4_f.reshape((X_test.shape))
-
-
-    return X_train_4_f, X_validation_4_f, X_test_4_f
-
-
 def feature_model_sub(X_train, X_validation, X_test):
 
     X_train = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
@@ -227,7 +207,9 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     feature_extract = True
     subModelFeatures = False
     RowScale = False
-    raw_n_feature=2
+
+    RawScaleOverModel = True
+    raw_n_feature = 2 if RawScaleOverModel else 4
 
 
 

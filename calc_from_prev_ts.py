@@ -11,7 +11,7 @@ from ctypes import  c_double
 import numpy as np
 
 def rows_scale(X_train, X_validation, X_test,log_scale=False,n_f=4):
-    print("start diff features")
+    print("start rows_scale features")
 
     if log_scale:
         X_train = np.log(X_train)
@@ -23,23 +23,40 @@ def rows_scale(X_train, X_validation, X_test,log_scale=False,n_f=4):
     X_test_4_f = np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1)
 
     for row in X_train_4_f:
-        preprocessing.scale(row,copy=False)
+        preprocessing.scale(row,copy=False,axis=1)
     for row in X_validation_4_f:
-        preprocessing.scale(row,copy=False)
+        preprocessing.scale(row,copy=False,axis=1)
     for row in X_test_4_f:
-        preprocessing.scale(row,copy=False)
+        preprocessing.scale(row,copy=False,axis=1)
     X_train_4_f = X_train_4_f.reshape((X_train.shape))
     X_validation_4_f = X_validation_4_f.reshape((X_validation.shape))
     X_test_4_f = X_test_4_f.reshape((X_test.shape))
 
-    print("done diff features")
+    print("done rows_scale features")
 
 
     return X_train_4_f, X_validation_4_f, X_test_4_f
 
 
+def feature_model_sub(X_train, X_validation, X_test):
+
+    X_train = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
+    X_validation = np.stack(np.split(X_validation, X_validation.shape[1]/4, 1), 1)
+    X_test = np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1)
+
+    X_train = np.stack([X_train[:, :, 2] - X_train[:, :, 0], X_train[:, :, 3] - X_train[:, :, 1]], axis=1)
+    X_train = X_train.transpose(0, 2, 1).reshape(X_train.shape[0], X_train.shape[1] * X_train.shape[2])
+
+    X_validation = np.stack([X_validation[:, :, 2] - X_validation[:, :, 0], X_validation[:, :, 3] - X_validation[:, :, 1]], axis=1)
+    X_validation = X_validation.transpose(0, 2, 1).reshape(X_validation.shape[0],  X_validation.shape[1] * X_validation.shape[2])
+
+    X_test = np.stack([X_test[:, :, 2] - X_test[:, :, 0], X_test[:, :, 3] - X_test[:, :, 1]], axis=1)
+    X_test = X_test.transpose(0, 2, 1).reshape(X_test.shape[0],   X_test.shape[1] * X_test.shape[2])
+
+    return X_train, X_validation, X_test
+
 def calc_diff_feature(X_train, X_validation, X_test,log_scale=False):
-    print("start diff features")
+    print("start calc_diff_feature features")
 
     if log_scale:
         X_train = np.log(X_train)
@@ -63,7 +80,7 @@ def calc_diff_feature(X_train, X_validation, X_test,log_scale=False):
         .reshape((X_test.shape[0],
                   X_test.shape[1] - 4))
 
-    print("done diff features")
+    print("done calc_diff_feature features")
     return X_train_final, X_validation_final, X_test_final
 
 
@@ -72,10 +89,12 @@ def main(train_file_name,valid_file_name,test_file_name):
     read train & validation file pre process the data
     :return: X_train, y_train, X_val, y_val,
     '''
-    log_scale=True
-    diff_feature=True
+    log_scale=False
+    diff_feature=False
     row_scale=True
-    raw_num_of_feature=2
+    subModelFeatures=False
+    RawScaleOverModel = True
+    raw_num_of_feature=2 if RawScaleOverModel else 4
 
     ac_log_scale = log_scale
 
@@ -96,14 +115,15 @@ def main(train_file_name,valid_file_name,test_file_name):
     else:
         prefix = f"rows_{raw_num_of_feature}" if row_scale else "diff"
 
-    if row_scale:
-        X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
-            rows_scale(X_train, X_validation, X_test, ac_log_scale,raw_num_of_feature)
-        ac_log_scale=False
+
     if diff_feature:
         X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
              calc_diff_feature(X_train, X_validation, X_test,ac_log_scale)
         ac_log_scale = False
+    if row_scale:
+        X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
+            rows_scale(X_train, X_validation, X_test, ac_log_scale,raw_num_of_feature)
+        ac_log_scale=False
 
     train_table = np.concatenate((y_train, X_train_prev_ts), axis=1)
     validation_table = np.concatenate((y_validation, X_validation_prev_ts), axis=1)
@@ -113,6 +133,7 @@ def main(train_file_name,valid_file_name,test_file_name):
         sufix = f"_log_{prefix}.csv"
     else:
         sufix = f"_{prefix}.csv"
+    print(f"The new suffix:  ## {sufix}")
     np.savetxt(train_file_name.replace(".csv",sufix), train_table, delimiter=",",fmt='%1.6f')
     np.savetxt(valid_file_name.replace(".csv", sufix), validation_table, delimiter=",",fmt='%1.6f')
     np.savetxt(test_file_name.replace(".csv", sufix), test_table, delimiter=",",fmt='%1.6f')

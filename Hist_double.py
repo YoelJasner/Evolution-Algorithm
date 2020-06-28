@@ -21,25 +21,6 @@ logging.basicConfig(
     filename='log.txt'
 )
 
-def rows_scale(X_train, X_validation, X_test):
-
-    X_train_4_f = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
-    X_validation_4_f = np.stack(np.split(X_validation, X_validation.shape[1]/4, 1), 1)
-    X_test_4_f = np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1)
-
-    for row in X_train_4_f:
-        preprocessing.scale(row,copy=False)
-    for row in X_validation_4_f:
-        preprocessing.scale(row,copy=False)
-    for row in X_test_4_f:
-        preprocessing.scale(row,copy=False)
-    X_train_4_f = X_train_4_f.reshape((X_train.shape))
-    X_validation_4_f = X_validation_4_f.reshape((X_validation.shape))
-    X_test_4_f = X_test_4_f.reshape((X_test.shape))
-
-
-    return X_train_4_f, X_validation_4_f, X_test_4_f
-
 
 def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     n_f = 2 if subModelFeatures else 4
@@ -83,6 +64,7 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     fc_2 = 1.016
     arr_len = int(30-(X_train.shape[1] /n_f %2))
     weight_coeff_2 = np.array([fc_2**i for i in range(arr_len)])
+    weight_coeff_2 = weight_coeff_2.astype(float) / weight_coeff_2.sum()
 
     X_train_avg_2 = np.average(weights=weight_coeff_2, a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
     X_validation_avg_2 = np.average(weights=weight_coeff_2,
@@ -97,32 +79,32 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_median = np.median(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
     X_test_median = np.median(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
-    X_train_var = X_train_std**2
-    X_validation_var = X_validation_std**2
-    X_test_var = X_test_std**2
+    # X_train_var = X_train_std**2
+    # X_validation_var = X_validation_std**2
+    # X_test_var = X_test_std**2
 
-    X_train_argmax = np.argmax(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
-    X_validation_argmax = np.argmax(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
-    X_test_argmax = np.argmax(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
-
-    X_train_argmin = np.argmin(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
-    X_validation_argmin = np.argmin(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
-    X_test_argmin = np.argmin(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+    # X_train_argmax = np.argmax(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    # X_validation_argmax = np.argmax(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    # X_test_argmax = np.argmax(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+    #
+    # X_train_argmin = np.argmin(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    # X_validation_argmin = np.argmin(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    # X_test_argmin = np.argmin(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
     X_train = np.concatenate((X_train,
-                              X_train_std,X_train_var,
+                              X_train_std,#X_train_var,
                               X_train_mean,X_train_median,
                               #X_train_argmax, X_train_argmin,
                               X_train_avg, X_train_avg_2,
                               X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation,
-                              X_validation_std,X_validation_var,
+                              X_validation_std,#X_validation_var,
                               X_validation_mean, X_validation_median,
                               #X_validation_argmax, X_validation_argmin,
                               X_validation_avg, X_validation_avg_2,
                               X_validation_min, X_validation_max), axis=1)
     X_test = np.concatenate((X_test,
-                                   X_test_std, X_test_var,
+                                   X_test_std, #X_test_var,
                                    X_test_mean, X_test_median,
                                    #X_test_argmax, X_test_argmin,
                                    X_test_avg, X_test_avg_2,
@@ -149,6 +131,8 @@ def pre_process_data(X_train, X_validation, X_test,
                                X_validation,
                                X_test,
                                subModelFeatures)
+    # TODO: remove if needed
+    #return X_train, X_validation, X_test
 
     # create scaler
     if scaler_type == 'Standard':
@@ -172,13 +156,16 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     :return: X_train, y_train, X_val, y_val,
     '''
 
-    bFeatureDiff = True
+    bFeatureDiff = False
     log_scale = True
-    scaler_type = 'Robust'
-    feature_extract = True
+    RowScale = True
+
     subModelFeatures = False
-    RowScale = False
-    raw_n_feature=2
+    scaler_type = 'Standard'
+    feature_extract = True
+
+    RawScaleOverModel = True
+    raw_n_feature=2 if RawScaleOverModel else 4
 
 
 
@@ -232,30 +219,33 @@ def main(train_file_name,valid_file_name,test_file_name):
 
 
     print("finish preprocessing")
-    f_scorer_full = make_scorer(fbeta_score, beta=0.14)
-    f_scorer_model1 = make_scorer(fbeta_score, beta=0.14)
-    f_scorer_model2 = make_scorer(fbeta_score, beta=0.14)
+    f_scorer_full = make_scorer(fbeta_score, beta=0.125)
+    f_scorer_model1 = make_scorer(fbeta_score, beta=0.09)
+    f_scorer_model2 = make_scorer(fbeta_score, beta=0.09)
+    f_scorer_model3 = make_scorer(fbeta_score, beta=0.09)
+    f_scorer_model4 = make_scorer(fbeta_score, beta=0.09)
     MAX_D = 6
-    MAX_ITER = 150
-    L_R_full = 0.075
+    MAX_ITER = 100
+    L_R_full = 0.06
     L_R = 0.07
-    N_ITER = 15
+    N_ITER = 8
     V_F = None
 
     full_model = HistGradientBoostingClassifier(scoring=f_scorer_full,
-                                                max_depth=5,
+                                                #max_depth=4,
                                                 max_iter=MAX_ITER,
                                                 learning_rate=L_R_full,
+                                                #n_iter_no_change=10,
                                                 validation_fraction = None,
-                                                verbose=0)
+                                                verbose=2)
 
     model_1 = HistGradientBoostingClassifier(scoring=f_scorer_model1,
-                                                max_depth=5,
-                                                max_iter=MAX_ITER,
-                                                learning_rate=0.08,
-                                                n_iter_no_change=N_ITER,
-                                                validation_fraction = V_F,
-                                                verbose=0)
+                                             # max_depth=MAX_D,
+                                             max_iter=MAX_ITER,
+                                             learning_rate=L_R,
+                                             n_iter_no_change=N_ITER,
+                                             validation_fraction=V_F,
+                                             verbose=0)
 
     model_2 = HistGradientBoostingClassifier(scoring=f_scorer_model2,
                                                 #max_depth=MAX_D,
@@ -265,34 +255,67 @@ def main(train_file_name,valid_file_name,test_file_name):
                                                 validation_fraction = V_F,
                                                 verbose=0)
 
-
-    X_train_4f = np.stack(np.split(X_train, X_train.shape[1] / 4, 1), 1)
-    X_validation_4f = np.stack(np.split(X_validation, X_validation.shape[1] / 4, 1), 1)
-    X_test_4f = np.stack(np.split(X_test, X_test.shape[1] / 4, 1), 1)
+    model_3 = HistGradientBoostingClassifier(scoring=f_scorer_model3,
+                                             # max_depth=MAX_D,
+                                             max_iter=MAX_ITER,
+                                             learning_rate=L_R,
+                                             n_iter_no_change=N_ITER,
+                                             validation_fraction=V_F,
+                                             verbose=0)
+    model_4 = HistGradientBoostingClassifier(scoring=f_scorer_model4,
+                                             # max_depth=MAX_D,
+                                             max_iter=MAX_ITER,
+                                             learning_rate=L_R,
+                                             n_iter_no_change=N_ITER,
+                                             validation_fraction=V_F,
+                                             verbose=0)
+    # X_train_4f = np.stack(np.split(X_train, X_train.shape[1] / 4, 1), 1)
+    # X_validation_4f = np.stack(np.split(X_validation, X_validation.shape[1] / 4, 1), 1)
+    # X_test_4f = np.stack(np.split(X_test, X_test.shape[1] / 4, 1), 1)
 
     # Split the dataset
-    X_train_model1 = np.stack([X_train_4f[:, :, 0] , X_train_4f[:, :, 2]],axis=1).\
-        transpose(0, 2, 1).\
-        reshape(X_train.shape[0], int(X_train.shape[1]/2))
-    X_train_model2 = np.stack([X_train_4f[:, :, 1] , X_train_4f[:, :, 3]],axis=1).\
-        transpose(0, 2, 1).\
-        reshape(X_train.shape[0], int(X_train.shape[1]/2))
-
-    X_validation_model1 = \
-        np.stack([X_validation_4f[:, :, 0], X_validation_4f[:, :, 2]], axis=1). \
-        transpose(0, 2, 1). \
-        reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
-    X_validation_model2 = \
-        np.stack([X_validation_4f[:, :, 1], X_validation_4f[:, :, 3]], axis=1). \
-        transpose(0, 2, 1). \
-        reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
-
-    X_test_model1 = np.stack([X_test_4f[:, :, 0], X_test_4f[:, :, 2]], axis=1). \
-        transpose(0, 2, 1). \
-        reshape(X_test.shape[0], int(X_test.shape[1] / 2))
-    X_test_model2 = np.stack([X_test_4f[:, :, 1], X_test_4f[:, :, 3]], axis=1). \
-        transpose(0, 2, 1). \
-        reshape(X_test.shape[0], int(X_test.shape[1] / 2))
+    # X_train_model1 = np.stack([X_train_4f[:, :, 0] , X_train_4f[:, :, 2]],axis=1).\
+    #     transpose(0, 2, 1).\
+    #     reshape(X_train.shape[0], int(X_train.shape[1]/2))
+    # X_train_model2 = np.stack([X_train_4f[:, :, 1] , X_train_4f[:, :, 3]],axis=1).\
+    #     transpose(0, 2, 1).\
+    #     reshape(X_train.shape[0], int(X_train.shape[1]/2))
+    # X_train_model3 = np.stack([X_train_4f[:, :, 0], X_train_4f[:, :, 1]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_train.shape[0], int(X_train.shape[1] / 2))
+    # X_train_model4 = np.stack([X_train_4f[:, :, 2], X_train_4f[:, :, 3]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_train.shape[0], int(X_train.shape[1] / 2))
+    #
+    # X_validation_model1 = \
+    #     np.stack([X_validation_4f[:, :, 0], X_validation_4f[:, :, 2]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
+    # X_validation_model2 = \
+    #     np.stack([X_validation_4f[:, :, 1], X_validation_4f[:, :, 3]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
+    # X_validation_model3 = \
+    #     np.stack([X_validation_4f[:, :, 0], X_validation_4f[:, :, 1]], axis=1). \
+    #         transpose(0, 2, 1). \
+    #         reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
+    # X_validation_model4 = \
+    #     np.stack([X_validation_4f[:, :, 2], X_validation_4f[:, :, 3]], axis=1). \
+    #         transpose(0, 2, 1). \
+    #         reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
+    #
+    # X_test_model1 = np.stack([X_test_4f[:, :, 0], X_test_4f[:, :, 2]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_test.shape[0], int(X_test.shape[1] / 2))
+    # X_test_model2 = np.stack([X_test_4f[:, :, 1], X_test_4f[:, :, 3]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_test.shape[0], int(X_test.shape[1] / 2))
+    # X_test_model3 = np.stack([X_test_4f[:, :, 0], X_test_4f[:, :, 1]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_test.shape[0], int(X_test.shape[1] / 2))
+    # X_test_model4 = np.stack([X_test_4f[:, :, 2], X_test_4f[:, :, 3]], axis=1). \
+    #     transpose(0, 2, 1). \
+    #     reshape(X_test.shape[0], int(X_test.shape[1] / 2))
 
     dataset_full_model = {"X_train": X_train,
                     "y_train": y_train,
@@ -300,22 +323,36 @@ def main(train_file_name,valid_file_name,test_file_name):
                     "y_validation": y_validation,
                     "X_test": X_test,
                     }
-    dataset_model1 = {"X_train": X_train_model1,
-                    "y_train": y_train,
-                    "X_validation": X_validation_model1,
-                    "y_validation": y_validation,
-                    "X_test": X_test_model1,
-                    }
-    dataset_model2 = {"X_train": X_train_model2,
-                      "y_train": y_train,
-                      "X_validation": X_validation_model2,
-                      "y_validation": y_validation,
-                      "X_test": X_test_model2,
-                      }
+    # dataset_model1 = {"X_train": X_train_model1,
+    #                 "y_train": y_train,
+    #                 "X_validation": X_validation_model1,
+    #                 "y_validation": y_validation,
+    #                 "X_test": X_test_model1,
+    #                 }
+    # dataset_model2 = {"X_train": X_train_model2,
+    #                   "y_train": y_train,
+    #                   "X_validation": X_validation_model2,
+    #                   "y_validation": y_validation,
+    #                   "X_test": X_test_model2,
+    #                   }
+    # dataset_model3 = {"X_train": X_train_model3,
+    #                   "y_train": y_train,
+    #                   "X_validation": X_validation_model3,
+    #                   "y_validation": y_validation,
+    #                   "X_test": X_test_model3,
+    #                   }
+    # dataset_model4 = {"X_train": X_train_model4,
+    #                   "y_train": y_train,
+    #                   "X_validation": X_validation_model4,
+    #                   "y_validation": y_validation,
+    #                   "X_test": X_test_model4,
+    #                   }
     model_list = []
     model_list.append((full_model,dataset_full_model,"Full"))
-    model_list.append((model_1, dataset_model1, "model1"))
-    model_list.append((model_2, dataset_model2, "model2"))
+    # model_list.append((model_1, dataset_model1, "model1"))
+    # model_list.append((model_2, dataset_model2, "model2"))
+    # model_list.append((model_3, dataset_model3, "model3"))
+    # model_list.append((model_4, dataset_model4, "model4"))
 
     y_val_list=[]
     y_test_list=[]
@@ -360,14 +397,17 @@ def main(train_file_name,valid_file_name,test_file_name):
 
 
     y_valid_pred_final = []
-    for a1,a2,a3 in zip(y_val_list[0],y_val_list[1],y_val_list[2]):
-        s = int(a1)+int(a2) +int(a3)
-        lab = 1 if s > 1 else 0
+    for tup in zip(*y_val_list):
+        s = np.sum(tup)
+        l_en = len(tup) //2
+        lab = 1 if s > l_en else 0
         y_valid_pred_final.append(lab)
     y_test_pred_final = []
-    for a1, a2, a3 in zip(y_test_list[0], y_test_list[1], y_test_list[2]):
-        s = int(a1) + int(a2) + int(a3)
-        lab = 1 if s > 1 else 0
+    # The test step
+    for tup in zip(*y_test_list):
+        s = np.sum(tup)
+        l_en = len(tup) // 2
+        lab = 1 if s > l_en else 0
         y_test_pred_final.append(lab)
 
     str_header = "*" * 78
