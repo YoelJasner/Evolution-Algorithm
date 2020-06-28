@@ -7,6 +7,7 @@ from keras.layers.convolutional import Convolution2D, MaxPooling2D,Convolution1D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
 kernel_size = 3
+STRIDE = 4
 
 def fbeta_keras(y_true, y_pred, threshold_shift=0.00):
     '''
@@ -189,7 +190,9 @@ class MyGenomeHandler:
                 #     )
                 if input_layer:
                     convolution = Convolution1D(filters=genome[offset + 1],
-                                                kernel_size=kernel_size,#Conv_Unit,
+                                                kernel_size=kernel_size,
+                                                strides=STRIDE,
+                                                #Conv_Unit,
                         padding='same',
                         input_shape=self.input_shape
                     )
@@ -197,6 +200,7 @@ class MyGenomeHandler:
                 else:
                     convolution = Convolution1D(filters=genome[offset + 1],
                                                 kernel_size=kernel_size,  # Conv_Unit,
+                                                strides=STRIDE,
                                                 padding='same')
                 model.add(convolution)
                 if genome[offset + 2]:
