@@ -172,8 +172,8 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
 
     genome_handler = MyGenomeHandler(max_conv_layers=2,
                                      max_dense_layers=2,  # includes final dense layer
-                                     max_filters=10,
-                                     max_dense_nodes=24,
+                                     max_filters=8,
+                                     max_dense_nodes=20,
                                      input_shape=s[1:],
                                      dropout=True)
     epochs = 6
