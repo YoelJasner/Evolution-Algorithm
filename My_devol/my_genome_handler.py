@@ -6,10 +6,10 @@ from keras.layers import Activation, Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D,Convolution1D,MaxPooling1D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
-kernel_size = 3
-STRIDE = 4
-
-def fbeta_keras(y_true, y_pred, threshold_shift=0.00):
+kernel_size = 2
+STRIDE = 2
+MAX_POOLING_SIZE=2
+def fbeta_keras(y_true, y_pred, threshold_shift=0.0001):
     '''
     f_beta score implematation using keras
     :param y_true: true label
@@ -180,12 +180,14 @@ class MyGenomeHandler:
                 #     convolution = Convolution2D(
                 #         genome[offset + 1], (3,3),#Conv_Unit,
                 #         padding='same',
+                #         strides=STRIDE,
                 #         input_shape=self.input_shape
                 #     )
                 #     input_layer = False
                 # else:
                 #     convolution = Convolution2D(
                 #         genome[offset + 1], (3,3),#Conv_Unit,
+                #         strides = STRIDE,
                 #         padding='same'
                 #     )
                 if input_layer:
@@ -211,7 +213,8 @@ class MyGenomeHandler:
                 # must be large enough for a convolution
                 if max_pooling_type == 1 and dim >= 5:
                     #model.add(MaxPooling2D(pool_size=(2, 2), padding="same"))
-                    model.add(MaxPooling1D(pool_size=3, padding="same"))
+                    model.add(MaxPooling1D(pool_size=MAX_POOLING_SIZE, padding="same"))
+                                           ##,strides=STRIDE))
                     dim = int(math.ceil(dim / 2))
             offset += self.convolution_layer_size
 
