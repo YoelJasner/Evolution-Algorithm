@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 
 
-def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
+def feature_extraction(X_train, X_validation, X_test, subModelFeatures):
     n_f = 2 if subModelFeatures else 4
     # TODO tegular mean
     # X_train_mean = np.mean(np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1), axis=1)
@@ -30,45 +30,41 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     # X_test_mean = np.mean(np.stack(np.split(X_test, X_test.shape[1]/4, 1), 1), axis=1)
 
     fc = 1.1
-    first_apear = int(6-(X_train.shape[1] /n_f %2))
+    first_apear = int(6 - (X_train.shape[1] / n_f % 2))
 
-    weight_coeff = np.array([fc] * first_apear + [fc**2] * 6 + [fc**3] * 6 + [fc**4] * 6 + [fc**5] * 6)
-
-
+    weight_coeff = np.array([fc] * first_apear + [fc ** 2] * 6 + [fc ** 3] * 6 + [fc ** 4] * 6 + [fc ** 5] * 6)
 
     weight_coeff = weight_coeff.astype(float) / weight_coeff.sum()
 
-    X_train_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
-    X_validation_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
-    X_test_avg = np.average(weights=weight_coeff ,a=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+    X_train_avg = np.average(weights=weight_coeff, a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_avg = np.average(weights=weight_coeff,
+                                  a=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_avg = np.average(weights=weight_coeff, a=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
+    X_train_std = np.std(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_std = np.std(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_std = np.std(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
-    X_train_std = np.std(np.stack(np.split(X_train, X_train.shape[1]/n_f, 1), 1), axis=1)
-    X_validation_std = np.std(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
-    X_test_std = np.std(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
+    X_train_max = np.max(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_max = np.max(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_max = np.max(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
-    X_train_max = np.max(np.stack(np.split(X_train, X_train.shape[1]/n_f, 1), 1), axis=1)
-    X_validation_max = np.max(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
-    X_test_max = np.max(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
-
-    X_train_min = np.min(np.stack(np.split(X_train, X_train.shape[1]/n_f, 1), 1), axis=1)
-    X_validation_min = np.min(np.stack(np.split(X_validation, X_validation.shape[1]/n_f, 1), 1), axis=1)
-    X_test_min = np.min(np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1), axis=1)
-
-
+    X_train_min = np.min(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_min = np.min(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_min = np.min(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
     # X_train = np.concatenate((X_train,X_train_avg, X_train_std, X_train_min, X_train_max), axis=1)
     # X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
     # X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
-    #return X_train, X_validation, X_test
+    # return X_train, X_validation, X_test
     fc_2 = 1.016
-    arr_len = int(30-(X_train.shape[1] /n_f %2))
-    weight_coeff_2 = np.array([fc_2**i for i in range(arr_len)])
-    weight_coeff_2 = weight_coeff_2.astype(float) / weight_coeff_2.sum()
+    arr_len = int(30 - (X_train.shape[1] / n_f % 2))
+    weight_coeff_2 = np.array([fc_2 ** i for i in range(arr_len)])
 
-    X_train_avg_2 = np.average(weights=weight_coeff_2, a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_train_avg_2 = np.average(weights=weight_coeff_2, a=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1),
+                               axis=1)
     X_validation_avg_2 = np.average(weights=weight_coeff_2,
-                                  a=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+                                    a=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
     X_test_avg_2 = np.average(weights=weight_coeff_2, a=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
     X_train_mean = np.mean(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
@@ -79,36 +75,46 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_median = np.median(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
     X_test_median = np.median(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
-    # X_train_var = X_train_std**2
-    # X_validation_var = X_validation_std**2
-    # X_test_var = X_test_std**2
+    X_train_quantile25 = np.quantile(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1, q=0.25)
+    X_validation_quantile25 = np.quantile(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1,
+                                          q=0.25)
+    X_test_quantile25 = np.quantile(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1, q=0.25)
 
-    # X_train_argmax = np.argmax(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
-    # X_validation_argmax = np.argmax(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
-    # X_test_argmax = np.argmax(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
-    #
-    # X_train_argmin = np.argmin(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
-    # X_validation_argmin = np.argmin(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
-    # X_test_argmin = np.argmin(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+    X_train_quantile75 = np.quantile(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1, q=0.75)
+    X_validation_quantile75 = np.quantile(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1,
+                                          q=0.75)
+    X_test_quantile75 = np.quantile(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1, q=0.75)
+
+    X_train_var = X_train_std ** 2
+    X_validation_var = X_validation_std ** 2
+    X_test_var = X_test_std ** 2
+
+    X_train_argmax = np.argmax(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_argmax = np.argmax(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_argmax = np.argmax(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
+
+    X_train_argmin = np.argmin(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1)
+    X_validation_argmin = np.argmin(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
+    X_test_argmin = np.argmin(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
     X_train = np.concatenate((X_train,
-                              X_train_std,#X_train_var,
-                              X_train_mean,X_train_median,
-                              #X_train_argmax, X_train_argmin,
+                              X_train_std, X_train_var,
+                              X_train_mean, X_train_median,
+                              X_train_quantile25, X_train_quantile75,
                               X_train_avg, X_train_avg_2,
                               X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation,
-                              X_validation_std,#X_validation_var,
-                              X_validation_mean, X_validation_median,
-                              #X_validation_argmax, X_validation_argmin,
-                              X_validation_avg, X_validation_avg_2,
-                              X_validation_min, X_validation_max), axis=1)
+                                   X_validation_std, X_validation_var,
+                                   X_validation_mean, X_validation_median,
+                                   X_validation_quantile25, X_validation_quantile75,
+                                   X_validation_avg, X_validation_avg_2,
+                                   X_validation_min, X_validation_max), axis=1)
     X_test = np.concatenate((X_test,
-                                   X_test_std, #X_test_var,
-                                   X_test_mean, X_test_median,
-                                   #X_test_argmax, X_test_argmin,
-                                   X_test_avg, X_test_avg_2,
-                                   X_test_min, X_test_max), axis=1)
+                             X_test_std, X_test_var,
+                             X_test_mean, X_test_median,
+                             X_test_quantile25, X_test_quantile75,
+                             X_test_avg, X_test_avg_2,
+                             X_test_min, X_test_max), axis=1)
 
     return X_train, X_validation, X_test
 

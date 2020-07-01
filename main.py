@@ -17,9 +17,11 @@ FILE_NAME = TIME_STR+".txt"
 MODEL_NAME = TIME_STR+".h5"
 RUN_DEVOL = True
 RUN_AGAIN = False
-R_STR = "2020-06-28#17:11:40.539299"
+INIT_WEIGHTS = True
+R_STR = "2020-07-01#10:01:12.411521"
 R_FILE_NAME = R_STR+".txt"
 R_MODEL_NAME = R_STR+".h5"
+DEVOL_RERUN_CYC = 1
 
 # Setup logging.
 logging.basicConfig(
@@ -121,6 +123,15 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_median = np.median(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1)
     X_test_median = np.median(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1)
 
+    X_train_quantile25 = np.quantile(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1,q=0.25)
+    X_validation_quantile25 = np.quantile(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1,q=0.25)
+    X_test_quantile25 = np.quantile(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1,q=0.25)
+
+    X_train_quantile75 = np.quantile(np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1), axis=1, q=0.75)
+    X_validation_quantile75 = np.quantile(np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1), axis=1,
+                                          q=0.75)
+    X_test_quantile75 = np.quantile(np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1), axis=1, q=0.75)
+
     X_train_var = X_train_std**2
     X_validation_var = X_validation_std**2
     X_test_var = X_test_std**2
@@ -136,19 +147,19 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_train = np.concatenate((X_train,
                               X_train_std,X_train_var,
                               X_train_mean,X_train_median,
-                              #X_train_argmax, X_train_argmin,
+                              X_train_quantile25,X_train_quantile75,
                               X_train_avg, X_train_avg_2,
                               X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation,
                               X_validation_std,X_validation_var,
                               X_validation_mean, X_validation_median,
-                              #X_validation_argmax, X_validation_argmin,
+                               X_validation_quantile25, X_validation_quantile75,
                               X_validation_avg, X_validation_avg_2,
                               X_validation_min, X_validation_max), axis=1)
     X_test = np.concatenate((X_test,
                                    X_test_std, X_test_var,
                                    X_test_mean, X_test_median,
-                                   #X_test_argmax, X_test_argmin,
+                                   X_test_quantile25, X_test_quantile75,
                                    X_test_avg, X_test_avg_2,
                                    X_test_min, X_test_max), axis=1)
 
@@ -408,7 +419,7 @@ def main(train_file_name,valid_file_name,test_file_name):
     if not RUN_DEVOL:
         generate(generations, population, nn_param_choices, dataset_dict)
     elif RUN_AGAIN:
-        DevolTrainExistModel(dataset_dict, R_MODEL_NAME, R_FILE_NAME,6)
+        DevolTrainExistModel(dataset_dict, R_MODEL_NAME, R_FILE_NAME,DEVOL_RERUN_CYC,INIT_WEIGHTS)
     else:
         DevolMain(dataset_dict,generations, population, MODEL_NAME,FILE_NAME)
 

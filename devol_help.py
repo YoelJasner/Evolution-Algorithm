@@ -5,6 +5,32 @@ from My_devol.my_genome_handler import fbeta_keras
 from sklearn.metrics import fbeta_score, accuracy_score, precision_score, recall_score
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.models import load_model
+from tensorflow.keras import Model as k_Model
+
+def reset_weights(model):
+    for layer in model.layers:
+        if isinstance(layer, k_Model): #if you're using a model as a layer
+            reset_weights(layer) #apply function recursively
+            continue
+
+        #where are the initializers?
+        if hasattr(layer, 'cell'):
+            init_container = layer.cell
+        else:
+            init_container = layer
+
+        for key, initializer in init_container.__dict__.items():
+            if "initializer" not in key: #is this item an initializer?
+                  continue #if no, skip it
+
+            # find the corresponding variable, like the kernel or the bias
+            if key == 'recurrent_initializer': #special case check
+                var = getattr(init_container, 'recurrent_kernel')
+            else:
+                var = getattr(init_container, key.replace("_initializer", ""))
+
+            var.assign(initializer(var.shape, var.dtype))
+            #use the initializer
 
 def get_best_threshold(y_val_proba, y_validation, y_train_proba, y_train):
     best_threshold = 0.5
@@ -119,10 +145,14 @@ def WriteResToFile(model,best_threshold, ds_class,file_name):
                            > best_threshold, 1, 0)
     np.savetxt(file_name, y_test_pred.astype(int), fmt='%i', delimiter='\n')
 
-def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patience):
+def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,
+                         EarlyStopping_patience,initWeight):
     ge = "@"*80
 
     suffix = f"#pati-{EarlyStopping_patience}"
+    if initWeight:
+        suffix = f"#init#{suffix}"
+
     new_MODEL_NAME = MODEL_NAME.replace(".h5", f"{suffix}.h5")
     new_FILE_NAME = FILE_NAME.replace(".txt", f"{suffix}.txt")
 
@@ -132,14 +162,22 @@ def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patienc
     print(ge)
 
     split_dim = dataset_dict['X_train'].shape[1] / 4
-    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 2)
-    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 2)
-    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 2)
+    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 1)
+    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 1)
+    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 1)
 
     print("Loading model {MODEL_NAME}")
     model = load_model(MODEL_NAME, custom_objects={"fbeta_keras": fbeta_keras})
+
+    if initWeight:
+        a = "*"*80
+        print(a)
+        print("Reset Weight!!!!!")
+        print(a)
+        reset_weights(model)
+
     print(model.summary())
-    model,best_t = devol_train_final_model(model,dataset_dict)
+    model,best_t = devol_train_final_model(model,dataset_dict,EarlyStopping_patience)
     WriteResToFile(model,best_t,dataset_dict,new_FILE_NAME)
     model.save(new_MODEL_NAME)
 
@@ -147,10 +185,10 @@ def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patienc
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
     # TODO: Delete after stableize
     generations=1
-    population=4
+    population=6
 
 
-    num_of_s = 300000
+    num_of_s = 4000000
     # dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
     # dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
     # dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
@@ -160,9 +198,9 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
 
     split_dim = dataset_dict['X_train'].shape[1] / 4
 
-    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 2)
-    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 2)
-    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 2)
+    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 1)
+    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 1)
+    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 1)
 
     dataset = ((dataset_dict['X_train'][:num_of_s, :],
                 dataset_dict['y_train'][:num_of_s, :]),
@@ -170,10 +208,10 @@ def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
                 dataset_dict['y_validation'][:num_of_s, :]))
     s = dataset_dict['X_train'].shape
 
-    genome_handler = MyGenomeHandler(max_conv_layers=2,
+    genome_handler = MyGenomeHandler(max_conv_layers=4,
                                      max_dense_layers=2,  # includes final dense layer
                                      max_filters=8,
-                                     max_dense_nodes=20,
+                                     max_dense_nodes=16,
                                      input_shape=s[1:],
                                      dropout=True)
     epochs = 6
