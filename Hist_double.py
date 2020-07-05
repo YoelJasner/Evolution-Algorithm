@@ -8,10 +8,14 @@ import datetime
 from sklearn.metrics import fbeta_score, accuracy_score, precision_score, recall_score,make_scorer
 from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingClassifier
+from catboost import CatBoostClassifier,Pool
 from gpMY import get_best_threshold
 TIME_STR = str(datetime.datetime.now()).replace(" ", "#")
-FILE_NAME = "hist_"+ TIME_STR+".txt"
-MODEL_NAME = "hist_" + TIME_STR+".h5"
+# FILE_NAME = "hist_"+ TIME_STR+".txt"
+# MODEL_NAME = "hist_" + TIME_STR+".h5"
+FILE_NAME = "cat_"+ TIME_STR+".txt"
+MODEL_NAME = "cat_" + TIME_STR+".h5"
+
 
 # Setup logging.
 logging.basicConfig(
@@ -21,6 +25,59 @@ logging.basicConfig(
     filename='log.txt'
 )
 
+class FBetaMetric(object):
+    def get_final_error(self, error, weight):
+        return error
+
+    def is_max_optimal(self):
+        return True
+
+    def evaluate(self, approxes, target, weight):
+        beta = 0.25
+        best_class = np.argmax(approxes, axis=0)
+        eps =0.000000000000000000000001
+        tp = eps
+        fp = eps
+        fn = eps
+
+        for i in range(len(target)):
+            if best_class[i] == target[i]:
+                tp +=1
+            elif best_class[i] == 0:
+                fn+=1
+            else:
+                fp+=1
+
+        precision = tp / (tp + fp)
+        recall = tp / (tp + fn)
+
+        beta_squared = beta ** 2
+        f_beta_score = (beta_squared + 1) * (precision * recall) \
+                       / (beta_squared * precision +
+                          recall +
+                          eps)
+        return f_beta_score,f_beta_score
+
+
+class AccuracyMetric(object):
+    def get_final_error(self, error, weight):
+        return error / (weight + 1e-38)
+
+    def is_max_optimal(self):
+        return True
+
+    def evaluate(self, approxes, target, weight):
+        best_class = np.argmax(approxes, axis=0)
+
+        accuracy_sum = 0
+        weight_sum = 0
+
+        for i in range(len(target)):
+            w = 1.0 if weight is None else weight[i]
+            weight_sum += w
+            accuracy_sum += w * (best_class[i] == target[i])
+
+        return accuracy_sum, weight_sum
 
 def feature_extraction(X_train, X_validation, X_test, subModelFeatures):
     n_f = 2 if subModelFeatures else 4
@@ -57,6 +114,8 @@ def feature_extraction(X_train, X_validation, X_test, subModelFeatures):
     # X_validation = np.concatenate((X_validation,X_validation_avg, X_validation_std, X_validation_min, X_validation_max), axis=1)
     # X_test = np.concatenate((X_test,X_test_avg, X_test_std, X_test_min, X_test_max), axis=1)
     # return X_train, X_validation, X_test
+
+
     fc_2 = 1.016
     arr_len = int(30 - (X_train.shape[1] / n_f % 2))
     weight_coeff_2 = np.array([fc_2 ** i for i in range(arr_len)])
@@ -162,9 +221,9 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     :return: X_train, y_train, X_val, y_val,
     '''
 
-    bFeatureDiff = False
+    bFeatureDiff = True
     log_scale = True
-    RowScale = True
+    RowScale = False
 
     subModelFeatures = False
     scaler_type = 'Standard'
@@ -219,73 +278,45 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
+def PrintResultNicely(str_header, c_title,c_name,
+                     c_data_set,y_train_pred,y_val_pred,
+                      printTrain):
+    print(str_header)
+    print(c_title)
+    print(str_header)
+    if printTrain:
+        print(c_name + ' Train accuracy', accuracy_score(c_data_set["y_train"], y_train_pred))
+        print(c_name + ' Train precision', precision_score(c_data_set["y_train"], y_train_pred))
+        print(c_name + ' Train recall', recall_score(c_data_set["y_train"], y_train_pred))
+        print(c_name + ' Train f-beta score', fbeta_score(c_data_set["y_train"], y_train_pred, beta=0.25))
+        print("~"*80)
+    print(c_name + ' Validation accuracy', accuracy_score(c_data_set["y_validation"], y_val_pred))
+    print(c_name + ' Validation precision', precision_score(c_data_set["y_validation"], y_val_pred))
+    print(c_name + ' Validation recall', recall_score(c_data_set["y_validation"], y_val_pred))
+    validation_beta_score = fbeta_score(c_data_set["y_validation"], y_val_pred, beta=0.25)
+    print(f'{c_name} Validation f-beta score {validation_beta_score}')
+    print(str_header)
+    print(str_header)
+
 def main(train_file_name,valid_file_name,test_file_name):
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name, valid_file_name, test_file_name)
 
 
     print("finish preprocessing")
-    f_scorer_full = make_scorer(fbeta_score, beta=0.125)
-    f_scorer_model1 = make_scorer(fbeta_score, beta=0.09)
-    f_scorer_model2 = make_scorer(fbeta_score, beta=0.09)
-    f_scorer_model3 = make_scorer(fbeta_score, beta=0.09)
-    f_scorer_model4 = make_scorer(fbeta_score, beta=0.09)
-    MAX_D = 6
-    MAX_ITER = 100
-    L_R_full = 0.06
-    L_R = 0.07
-    N_ITER = 8
-    V_F = None
 
-    full_model = HistGradientBoostingClassifier(scoring=f_scorer_full,
-                                                #max_depth=4,
-                                                max_iter=MAX_ITER,
-                                                learning_rate=L_R_full,
-                                                #n_iter_no_change=10,
-                                                validation_fraction = None,
-                                                verbose=2)
 
-    model_1 = HistGradientBoostingClassifier(scoring=f_scorer_model1,
-                                             # max_depth=MAX_D,
-                                             max_iter=MAX_ITER,
-                                             learning_rate=L_R,
-                                             n_iter_no_change=N_ITER,
-                                             validation_fraction=V_F,
-                                             verbose=0)
-
-    model_2 = HistGradientBoostingClassifier(scoring=f_scorer_model2,
-                                                #max_depth=MAX_D,
-                                                max_iter=MAX_ITER,
-                                                learning_rate=L_R,
-                                                n_iter_no_change=N_ITER,
-                                                validation_fraction = V_F,
-                                                verbose=0)
-
-    model_3 = HistGradientBoostingClassifier(scoring=f_scorer_model3,
-                                             # max_depth=MAX_D,
-                                             max_iter=MAX_ITER,
-                                             learning_rate=L_R,
-                                             n_iter_no_change=N_ITER,
-                                             validation_fraction=V_F,
-                                             verbose=0)
-    model_4 = HistGradientBoostingClassifier(scoring=f_scorer_model4,
-                                             # max_depth=MAX_D,
-                                             max_iter=MAX_ITER,
-                                             learning_rate=L_R,
-                                             n_iter_no_change=N_ITER,
-                                             validation_fraction=V_F,
-                                             verbose=0)
-    # X_train_4f = np.stack(np.split(X_train, X_train.shape[1] / 4, 1), 1)
-    # X_validation_4f = np.stack(np.split(X_validation, X_validation.shape[1] / 4, 1), 1)
-    # X_test_4f = np.stack(np.split(X_test, X_test.shape[1] / 4, 1), 1)
+    X_train_4f = np.stack(np.split(X_train, X_train.shape[1] / 4, 1), 1)
+    X_validation_4f = np.stack(np.split(X_validation, X_validation.shape[1] / 4, 1), 1)
+    X_test_4f = np.stack(np.split(X_test, X_test.shape[1] / 4, 1), 1)
 
     # Split the dataset
-    # X_train_model1 = np.stack([X_train_4f[:, :, 0] , X_train_4f[:, :, 2]],axis=1).\
-    #     transpose(0, 2, 1).\
-    #     reshape(X_train.shape[0], int(X_train.shape[1]/2))
-    # X_train_model2 = np.stack([X_train_4f[:, :, 1] , X_train_4f[:, :, 3]],axis=1).\
-    #     transpose(0, 2, 1).\
-    #     reshape(X_train.shape[0], int(X_train.shape[1]/2))
+    X_train_model1 = np.stack([X_train_4f[:, :, 0] , X_train_4f[:, :, 2]],axis=1).\
+        transpose(0, 2, 1).\
+        reshape(X_train.shape[0], int(X_train.shape[1]/2))
+    X_train_model2 = np.stack([X_train_4f[:, :, 1] , X_train_4f[:, :, 3]],axis=1).\
+        transpose(0, 2, 1).\
+        reshape(X_train.shape[0], int(X_train.shape[1]/2))
     # X_train_model3 = np.stack([X_train_4f[:, :, 0], X_train_4f[:, :, 1]], axis=1). \
     #     transpose(0, 2, 1). \
     #     reshape(X_train.shape[0], int(X_train.shape[1] / 2))
@@ -293,14 +324,14 @@ def main(train_file_name,valid_file_name,test_file_name):
     #     transpose(0, 2, 1). \
     #     reshape(X_train.shape[0], int(X_train.shape[1] / 2))
     #
-    # X_validation_model1 = \
-    #     np.stack([X_validation_4f[:, :, 0], X_validation_4f[:, :, 2]], axis=1). \
-    #     transpose(0, 2, 1). \
-    #     reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
-    # X_validation_model2 = \
-    #     np.stack([X_validation_4f[:, :, 1], X_validation_4f[:, :, 3]], axis=1). \
-    #     transpose(0, 2, 1). \
-    #     reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
+    X_validation_model1 = \
+        np.stack([X_validation_4f[:, :, 0], X_validation_4f[:, :, 2]], axis=1). \
+        transpose(0, 2, 1). \
+        reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
+    X_validation_model2 = \
+        np.stack([X_validation_4f[:, :, 1], X_validation_4f[:, :, 3]], axis=1). \
+        transpose(0, 2, 1). \
+        reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
     # X_validation_model3 = \
     #     np.stack([X_validation_4f[:, :, 0], X_validation_4f[:, :, 1]], axis=1). \
     #         transpose(0, 2, 1). \
@@ -310,12 +341,12 @@ def main(train_file_name,valid_file_name,test_file_name):
     #         transpose(0, 2, 1). \
     #         reshape(X_validation.shape[0], int(X_validation.shape[1] / 2))
     #
-    # X_test_model1 = np.stack([X_test_4f[:, :, 0], X_test_4f[:, :, 2]], axis=1). \
-    #     transpose(0, 2, 1). \
-    #     reshape(X_test.shape[0], int(X_test.shape[1] / 2))
-    # X_test_model2 = np.stack([X_test_4f[:, :, 1], X_test_4f[:, :, 3]], axis=1). \
-    #     transpose(0, 2, 1). \
-    #     reshape(X_test.shape[0], int(X_test.shape[1] / 2))
+    X_test_model1 = np.stack([X_test_4f[:, :, 0], X_test_4f[:, :, 2]], axis=1). \
+        transpose(0, 2, 1). \
+        reshape(X_test.shape[0], int(X_test.shape[1] / 2))
+    X_test_model2 = np.stack([X_test_4f[:, :, 1], X_test_4f[:, :, 3]], axis=1). \
+        transpose(0, 2, 1). \
+        reshape(X_test.shape[0], int(X_test.shape[1] / 2))
     # X_test_model3 = np.stack([X_test_4f[:, :, 0], X_test_4f[:, :, 1]], axis=1). \
     #     transpose(0, 2, 1). \
     #     reshape(X_test.shape[0], int(X_test.shape[1] / 2))
@@ -329,18 +360,18 @@ def main(train_file_name,valid_file_name,test_file_name):
                     "y_validation": y_validation,
                     "X_test": X_test,
                     }
-    # dataset_model1 = {"X_train": X_train_model1,
-    #                 "y_train": y_train,
-    #                 "X_validation": X_validation_model1,
-    #                 "y_validation": y_validation,
-    #                 "X_test": X_test_model1,
-    #                 }
-    # dataset_model2 = {"X_train": X_train_model2,
-    #                   "y_train": y_train,
-    #                   "X_validation": X_validation_model2,
-    #                   "y_validation": y_validation,
-    #                   "X_test": X_test_model2,
-    #                   }
+    dataset_model1 = {"X_train": X_train_model1,
+                    "y_train": y_train,
+                    "X_validation": X_validation_model1,
+                    "y_validation": y_validation,
+                    "X_test": X_test_model1,
+                    }
+    dataset_model2 = {"X_train": X_train_model2,
+                      "y_train": y_train,
+                      "X_validation": X_validation_model2,
+                      "y_validation": y_validation,
+                      "X_test": X_test_model2,
+                      }
     # dataset_model3 = {"X_train": X_train_model3,
     #                   "y_train": y_train,
     #                   "X_validation": X_validation_model3,
@@ -353,24 +384,115 @@ def main(train_file_name,valid_file_name,test_file_name):
     #                   "y_validation": y_validation,
     #                   "X_test": X_test_model4,
     #                   }
+
+    f_scorer_full = make_scorer(fbeta_score, beta=0.125)
+    f_scorer_model1 = make_scorer(fbeta_score, beta=0.09)
+    f_scorer_model2 = make_scorer(fbeta_score, beta=0.09)
+    f_scorer_model3 = make_scorer(fbeta_score, beta=0.09)
+    f_scorer_model4 = make_scorer(fbeta_score, beta=0.09)
+    MAX_D = 6
+    MAX_ITER = 100
+    L_R_full = 0.06
+    L_R = 0.07
+    N_ITER = 8
+    V_F = None
+
+
+
+    # full_model = HistGradientBoostingClassifier(scoring=f_scorer_full,
+    #                                             #max_depth=4,
+    #                                             max_iter=MAX_ITER,
+    #                                             learning_rate=L_R_full,
+    #                                             #n_iter_no_change=10,
+    #                                             validation_fraction = None,
+    #                                             verbose=2)
+
+
+    # model_1 = HistGradientBoostingClassifier(scoring=f_scorer_model1,
+    #                                          # max_depth=MAX_D,
+    #                                          max_iter=MAX_ITER,
+    #                                          learning_rate=L_R,
+    #                                          n_iter_no_change=N_ITER,
+    #                                          validation_fraction=V_F,
+    #                                          verbose=0)
+    full_model = CatBoostClassifier(verbose=2,
+                                    #eval_metric=AccuracyMetric(),
+                                    od_pval=0.00001,
+                                    od_wait=15)
+    model_1 = CatBoostClassifier(verbose=2,
+                                 #eval_metric=AccuracyMetric(),
+                                 od_pval=0.00001,
+                                 od_wait=15)
+
+    model_2 = CatBoostClassifier(verbose=2,
+                                 #eval_metric=AccuracyMetric(),
+                                 od_pval=0.00001,
+                                 od_wait=15)
+
+    # model_2 = HistGradientBoostingClassifier(scoring=f_scorer_model2,
+    #                                             #max_depth=MAX_D,
+    #                                             max_iter=MAX_ITER,
+    #                                             learning_rate=L_R,
+    #                                             n_iter_no_change=N_ITER,
+    #                                             validation_fraction = V_F,
+    #                                             verbose=0)
+    #
+    # model_3 = HistGradientBoostingClassifier(scoring=f_scorer_model3,
+    #                                          # max_depth=MAX_D,
+    #                                          max_iter=MAX_ITER,
+    #                                          learning_rate=L_R,
+    #                                          n_iter_no_change=N_ITER,
+    #                                          validation_fraction=V_F,
+    #                                          verbose=0)
+    # model_4 = HistGradientBoostingClassifier(scoring=f_scorer_model4,
+    #                                          # max_depth=MAX_D,
+    #                                          max_iter=MAX_ITER,
+    #                                          learning_rate=L_R,
+    #                                          n_iter_no_change=N_ITER,
+    #                                          validation_fraction=V_F,
+    #                                          verbose=0)
+
     model_list = []
     model_list.append((full_model,dataset_full_model,"Full"))
-    # model_list.append((model_1, dataset_model1, "model1"))
-    # model_list.append((model_2, dataset_model2, "model2"))
+    model_list.append((model_1, dataset_model1, "model1"))
+    model_list.append((model_2, dataset_model2, "model2"))
     # model_list.append((model_3, dataset_model3, "model3"))
     # model_list.append((model_4, dataset_model4, "model4"))
 
     y_val_list=[]
     y_test_list=[]
 
-    str_header = "$" * 78
+
 
     for c_model, c_data_set,c_name in model_list:
         print(f"Running {c_name}")
-        c_model.fit(c_data_set["X_train"], c_data_set["y_train"])
+
+        pool_valid = Pool(data=c_data_set["X_validation"],
+                         label=c_data_set["y_validation"])
+
+        c_model.fit(c_data_set["X_train"], c_data_set["y_train"],eval_set=pool_valid)
 
         y_val_proba = c_model.predict_proba(c_data_set["X_validation"])
         y_train_proba = c_model.predict_proba(c_data_set["X_train"])
+
+        y_train_pred = np.where(y_train_proba[:, 1]
+                                > 0.5, 1, 0)
+        y_val_pred = np.where(y_val_proba[:, 1] > 0.5, 1, 0)
+
+        c_title = "Before any optimization threshold using 0.5"
+        str_header = "^" * 78
+        noOp_c_name = f"NoOptimized {c_name} "
+
+        PrintResultNicely(str_header=str_header,
+                          c_title=c_title,
+                          c_name=noOp_c_name,
+                          c_data_set=c_data_set,
+                          y_train_pred=y_train_pred,
+                          y_val_pred=y_val_pred,
+                          printTrain=True)
+
+
+        # Optimize Threshold
         best_threshold = get_best_threshold(y_val_proba, c_data_set["y_validation"])
 
         y_train_pred = np.where(y_train_proba[:, 1]
@@ -380,27 +502,18 @@ def main(train_file_name,valid_file_name,test_file_name):
         y_test_pred = np.where(c_model.predict_proba(c_data_set["X_test"])[:, 1]
                                > best_threshold, 1, 0)
 
+
         y_val_list.append(y_val_pred)
         y_test_list.append(y_test_pred)
-        print(str_header)
-        print(f"Using threshold {best_threshold}")
-        print(str_header)
-        print(c_name+ ' Train accuracy', accuracy_score(c_data_set["y_train"], y_train_pred))
-        print(c_name+ ' Validation accuracy', accuracy_score(c_data_set["y_validation"], y_val_pred))
-
-        print(c_name+ ' Train precision', precision_score(c_data_set["y_train"], y_train_pred))
-        print(c_name+ ' Validation precision', precision_score(c_data_set["y_validation"], y_val_pred))
-
-        print(c_name+ ' Train recall', recall_score(c_data_set["y_train"], y_train_pred))
-        print(c_name+ ' Validation recall', recall_score(c_data_set["y_validation"], y_val_pred))
-
-        print(c_name+ ' Train f-beta score', fbeta_score(c_data_set["y_train"], y_train_pred, beta=0.25))
-        validation_beta_score = fbeta_score(c_data_set["y_validation"], y_val_pred, beta=0.25)
-        print(f'{c_name} Validation f-beta score {validation_beta_score}')
-        print(str_header)
-        print(str_header)
-
-
+        str_header = "$" * 78
+        c_title = f"Using threshold {best_threshold}"
+        PrintResultNicely(str_header=str_header,
+                          c_title=c_title,
+                          c_name=c_name,
+                          c_data_set=c_data_set,
+                          y_train_pred=y_train_pred,
+                          y_val_pred=y_val_pred,
+                          printTrain=True)
 
     y_valid_pred_final = []
     for tup in zip(*y_val_list):
@@ -418,15 +531,14 @@ def main(train_file_name,valid_file_name,test_file_name):
 
     str_header = "*" * 78
     c_name = "Merge_ALL"
-    print(str_header)
-    print(str_header)
-    print(c_name + ' Validation accuracy', accuracy_score(y_validation, y_valid_pred_final))
-    print(c_name + ' Validation precision', precision_score(y_validation, y_valid_pred_final))
-    print(c_name + ' Validation recall', recall_score(y_validation, y_valid_pred_final))
-    validation_beta_score = fbeta_score(y_validation, y_valid_pred_final, beta=0.25)
-    print(f'{c_name} Validation f-beta score {validation_beta_score}')
-    print(str_header)
-    print(str_header)
+    c_title = "Final Merge Results"
+    PrintResultNicely(str_header=str_header,
+                      c_title=c_title,
+                      c_name=c_name,
+                      c_data_set=dataset_full_model,
+                      y_train_pred=[],
+                      y_val_pred=y_valid_pred_final,
+                      printTrain=False)
 
     print(f"Write tests results to File {FILE_NAME}..")
     y_test_pred_arr = np.array(y_test_pred_final)
