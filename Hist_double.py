@@ -415,19 +415,19 @@ def main(train_file_name,valid_file_name,test_file_name):
     #                                          n_iter_no_change=N_ITER,
     #                                          validation_fraction=V_F,
     #                                          verbose=0)
-    full_model = CatBoostClassifier(verbose=2,
+    full_model = CatBoostClassifier(verbose=1,
                                     #eval_metric=AccuracyMetric(),
                                     od_pval=0.00001,
-                                    od_wait=15)
-    model_1 = CatBoostClassifier(verbose=2,
+                                    od_wait=10)
+    model_1 = CatBoostClassifier(verbose=1,
                                  #eval_metric=AccuracyMetric(),
                                  od_pval=0.00001,
-                                 od_wait=15)
+                                 od_wait=10)
 
-    model_2 = CatBoostClassifier(verbose=2,
+    model_2 = CatBoostClassifier(verbose=1,
                                  #eval_metric=AccuracyMetric(),
                                  od_pval=0.00001,
-                                 od_wait=15)
+                                 od_wait=10)
 
     # model_2 = HistGradientBoostingClassifier(scoring=f_scorer_model2,
     #                                             #max_depth=MAX_D,
