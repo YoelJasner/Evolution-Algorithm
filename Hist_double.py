@@ -222,27 +222,25 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     '''
 
     bFeatureDiff = True
-    log_scale = True
-    RowScale = False
+    bFeatureScale = True
+    log_scale = False
+    RowScale = True
 
     subModelFeatures = False
     scaler_type = 'Standard'
     feature_extract = True
 
-    RawScaleOverModel = True
+    RawScaleOverModel = False
     raw_n_feature=2 if RawScaleOverModel else 4
+    prefix = ""
+    if bFeatureScale:
+        prefix = f"{prefix}featureScale_"
+    if RowScale:
+        prefix = f"{prefix}rowsScale_{raw_n_feature}"
+    if bFeatureDiff:
+        prefix = f"{prefix}diff_"
 
-
-
-    if bFeatureDiff and RowScale:
-        # print("cant do feature diff also raw scale")
-        # exit(-1)
-        print("Run both feature diff also raw scale")
-        prefix = f"rows_{raw_n_feature}_diff"
-    else:
-        prefix = f"rows_{raw_n_feature}" if RowScale else "diff"
-
-    if bFeatureDiff or RowScale:
+    if bFeatureDiff or RowScale or bFeatureScale:
         sufix = f"_{prefix}.csv"
         if log_scale:
             sufix = f"_log_{prefix}.csv"
@@ -391,7 +389,7 @@ def main(train_file_name,valid_file_name,test_file_name):
     f_scorer_model3 = make_scorer(fbeta_score, beta=0.09)
     f_scorer_model4 = make_scorer(fbeta_score, beta=0.09)
     MAX_D = 6
-    MAX_ITER = 100
+    MAX_ITER = 150
     L_R_full = 0.06
     L_R = 0.07
     N_ITER = 8
@@ -399,43 +397,43 @@ def main(train_file_name,valid_file_name,test_file_name):
 
 
 
-    # full_model = HistGradientBoostingClassifier(scoring=f_scorer_full,
-    #                                             #max_depth=4,
-    #                                             max_iter=MAX_ITER,
-    #                                             learning_rate=L_R_full,
-    #                                             #n_iter_no_change=10,
-    #                                             validation_fraction = None,
-    #                                             verbose=2)
+    full_model = HistGradientBoostingClassifier(scoring=f_scorer_full,
+                                                #max_depth=4,
+                                                max_iter=MAX_ITER,
+                                                learning_rate=L_R_full,
+                                                #n_iter_no_change=10,
+                                                validation_fraction = None,
+                                                verbose=2)
 
 
-    # model_1 = HistGradientBoostingClassifier(scoring=f_scorer_model1,
-    #                                          # max_depth=MAX_D,
-    #                                          max_iter=MAX_ITER,
-    #                                          learning_rate=L_R,
-    #                                          n_iter_no_change=N_ITER,
-    #                                          validation_fraction=V_F,
-    #                                          verbose=0)
-    full_model = CatBoostClassifier(verbose=1,
-                                    #eval_metric=AccuracyMetric(),
-                                    od_pval=0.00001,
-                                    od_wait=10)
-    model_1 = CatBoostClassifier(verbose=1,
-                                 #eval_metric=AccuracyMetric(),
-                                 od_pval=0.00001,
-                                 od_wait=10)
+    model_1 = HistGradientBoostingClassifier(scoring=f_scorer_model1,
+                                             # max_depth=MAX_D,
+                                             max_iter=MAX_ITER,
+                                             learning_rate=L_R,
+                                             n_iter_no_change=N_ITER,
+                                             validation_fraction=V_F,
+                                             verbose=0)
+    # full_model = CatBoostClassifier(verbose=2,
+    #                                 eval_metric=AccuracyMetric())
+    #                                 # od_pval=0.00001,
+    #                                 # od_wait=10)
+    # model_1 = CatBoostClassifier(verbose=1,
+    #                              #eval_metric=AccuracyMetric(),
+    #                              od_pval=0.00001,
+    #                              od_wait=10)
+    #
+    # model_2 = CatBoostClassifier(verbose=1,
+    #                              #eval_metric=AccuracyMetric(),
+    #                              od_pval=0.00001,
+    #                              od_wait=10)
 
-    model_2 = CatBoostClassifier(verbose=1,
-                                 #eval_metric=AccuracyMetric(),
-                                 od_pval=0.00001,
-                                 od_wait=10)
-
-    # model_2 = HistGradientBoostingClassifier(scoring=f_scorer_model2,
-    #                                             #max_depth=MAX_D,
-    #                                             max_iter=MAX_ITER,
-    #                                             learning_rate=L_R,
-    #                                             n_iter_no_change=N_ITER,
-    #                                             validation_fraction = V_F,
-    #                                             verbose=0)
+    model_2 = HistGradientBoostingClassifier(scoring=f_scorer_model2,
+                                                #max_depth=MAX_D,
+                                                max_iter=MAX_ITER,
+                                                learning_rate=L_R,
+                                                n_iter_no_change=N_ITER,
+                                                validation_fraction = V_F,
+                                                verbose=0)
     #
     # model_3 = HistGradientBoostingClassifier(scoring=f_scorer_model3,
     #                                          # max_depth=MAX_D,

@@ -6,7 +6,7 @@ from keras.layers import Activation, Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D,Convolution1D,MaxPooling1D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
-kernel_size = 10
+kernel_size = 16
 STRIDE = 4
 MAX_POOLING_SIZE=4
 def fbeta_keras(y_true, y_pred, threshold_shift=0.0001):
@@ -239,7 +239,7 @@ class MyGenomeHandler:
         model.add(Dense(1, activation='sigmoid'))
         model.compile(loss='binary_crossentropy',
             optimizer=self.optimizer[genome[offset]],
-            metrics=[fbeta_keras])#metrics=["accuracy"])
+            metrics=["accuracy"])#metrics=[fbeta_keras])#
         return model
 
     def genome_representation(self):

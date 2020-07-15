@@ -17,7 +17,7 @@ FILE_NAME = TIME_STR+".txt"
 MODEL_NAME = TIME_STR+".h5"
 RUN_DEVOL = True
 RUN_AGAIN = False
-INIT_WEIGHTS = True
+INIT_WEIGHTS = False
 R_STR = "2020-07-01#10:01:12.411521"
 R_FILE_NAME = R_STR+".txt"
 R_MODEL_NAME = R_STR+".h5"
@@ -213,30 +213,28 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     '''
 
     bFeatureDiff = True
-    log_scale = True
+    bFeatureScale = True
+    log_scale = False
+    RowScale = True
+
+    subModelFeatures = False
     scaler_type = 'Standard'
     feature_extract = True
-    subModelFeatures = False
-    RowScale = False
 
-    RawScaleOverModel = True
+    RawScaleOverModel = False
     raw_n_feature = 2 if RawScaleOverModel else 4
+    prefix = ""
+    if bFeatureScale:
+        prefix = f"{prefix}featureScale_"
+    if RowScale:
+        prefix = f"{prefix}rowsScale_{raw_n_feature}"
+    if bFeatureDiff:
+        prefix = f"{prefix}diff_"
 
-
-
-    if bFeatureDiff and RowScale:
-        # print("cant do feature diff also raw scale")
-        # exit(-1)
-        print("Run both feature diff also raw scale")
-        prefix = f"rows_{raw_n_feature}_diff"
-    else:
-        prefix = f"rows_{raw_n_feature}" if RowScale else "diff"
-
-    if bFeatureDiff or RowScale:
+    if bFeatureDiff or RowScale or bFeatureScale:
         sufix = f"_{prefix}.csv"
         if log_scale:
             sufix = f"_log_{prefix}.csv"
-
 
         # In any case the log already calculate
         log_scale = False

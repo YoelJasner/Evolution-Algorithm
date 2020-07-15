@@ -23,11 +23,11 @@ def rows_scale(X_train, X_validation, X_test,log_scale=False,n_f=4):
     X_test_4_f = np.stack(np.split(X_test, X_test.shape[1]/n_f, 1), 1)
 
     for row in X_train_4_f:
-        preprocessing.scale(row,copy=False,axis=1)
+        preprocessing.minmax_scale(row,copy=False,axis=1)
     for row in X_validation_4_f:
-        preprocessing.scale(row,copy=False,axis=1)
+        preprocessing.minmax_scale(row,copy=False,axis=1)
     for row in X_test_4_f:
-        preprocessing.scale(row,copy=False,axis=1)
+        preprocessing.minmax_scale(row,copy=False,axis=1)
     X_train_4_f = X_train_4_f.reshape((X_train.shape))
     X_validation_4_f = X_validation_4_f.reshape((X_validation.shape))
     X_test_4_f = X_test_4_f.reshape((X_test.shape))
@@ -36,7 +36,6 @@ def rows_scale(X_train, X_validation, X_test,log_scale=False,n_f=4):
 
 
     return X_train_4_f, X_validation_4_f, X_test_4_f
-
 
 def feature_model_sub(X_train, X_validation, X_test):
 
@@ -54,6 +53,21 @@ def feature_model_sub(X_train, X_validation, X_test):
     X_test = X_test.transpose(0, 2, 1).reshape(X_test.shape[0],   X_test.shape[1] * X_test.shape[2])
 
     return X_train, X_validation, X_test
+
+def calc_feature_scale(X_train, X_validation, X_test):
+    print("start calc_feature_scale features")
+
+    scaler = preprocessing.StandardScaler()
+
+    scaler.fit(X_train)
+    # robust scaling
+    X_train = scaler.transform(X_train)
+    X_validation = scaler.transform(X_validation)
+    X_test = scaler.transform(X_test)
+    print("finish calc_feature_scale features")
+
+    return X_train, X_validation, X_test
+
 
 def calc_diff_feature(X_train, X_validation, X_test,log_scale=False):
     print("start calc_diff_feature features")
@@ -90,10 +104,11 @@ def main(train_file_name,valid_file_name,test_file_name):
     :return: X_train, y_train, X_val, y_val,
     '''
     log_scale=False
-    diff_feature=False
+    diff_feature=True
+    feature_scale=True
     row_scale=True
     subModelFeatures=False
-    RawScaleOverModel = True
+    RawScaleOverModel = False
     raw_num_of_feature=2 if RawScaleOverModel else 4
 
     ac_log_scale = log_scale
@@ -109,25 +124,33 @@ def main(train_file_name,valid_file_name,test_file_name):
     y_validation = df_validation.loc[:, df_validation.columns == 0].values
     X_test = df_test.loc[:, df_test.columns != 0].values
     y_test = np.asarray([[-1] * X_test.shape[0]]).T
+    prefix = ""
 
-    if row_scale and diff_feature:
-        prefix=f"rows_{raw_num_of_feature}_diff"
-    else:
-        prefix = f"rows_{raw_num_of_feature}" if row_scale else "diff"
-
-
-    if diff_feature:
-        X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
-             calc_diff_feature(X_train, X_validation, X_test,ac_log_scale)
-        ac_log_scale = False
+    if feature_scale:
+        prefix = f"{prefix}featureScale_"
     if row_scale:
-        X_train_prev_ts, X_validation_prev_ts, X_test_prev_ts = \
+        prefix = f"{prefix}rowsScale_{raw_num_of_feature}"
+    if diff_feature:
+        prefix = f"{prefix}diff_"
+
+    if feature_scale:
+        X_train, X_validation, X_test = \
+             calc_feature_scale(X_train, X_validation, X_test)
+        ac_log_scale = False
+
+    if row_scale:
+        X_train, X_validation, X_test = \
             rows_scale(X_train, X_validation, X_test, ac_log_scale,raw_num_of_feature)
         ac_log_scale=False
 
-    train_table = np.concatenate((y_train, X_train_prev_ts), axis=1)
-    validation_table = np.concatenate((y_validation, X_validation_prev_ts), axis=1)
-    test_table = np.concatenate((y_test, X_test_prev_ts), axis=1)
+    if diff_feature:
+        X_train, X_validation, X_test = \
+             calc_diff_feature(X_train, X_validation, X_test,ac_log_scale)
+        ac_log_scale = False
+
+    train_table = np.concatenate((y_train, X_train), axis=1)
+    validation_table = np.concatenate((y_validation, X_validation), axis=1)
+    test_table = np.concatenate((y_test, X_test), axis=1)
 
     if log_scale:
         sufix = f"_log_{prefix}.csv"
