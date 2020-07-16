@@ -25,6 +25,7 @@ from My_devol.my_genome_handler import fbeta_keras,INIT_SEED
 rand.seed(INIT_SEED,2)
 np.random.seed(INIT_SEED)
 import tensorflow as tf
+tf.reset_default_graph()
 tf.set_random_seed(INIT_SEED)
 # Constant the randomized
 
@@ -186,6 +187,8 @@ class MyDEvol:
         if self.x_val is not None:
             fit_params['validation_data'] = (self.x_val, self.y_val)
         try:
+            sess = tf.Session()
+            sess.run(tf.global_variables_initializer())
             model.fit(**fit_params)
             loss, accuracy = model.evaluate(self.x_test, self.y_test, verbose=1)
 

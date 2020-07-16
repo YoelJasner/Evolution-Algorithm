@@ -1,10 +1,17 @@
 from __future__ import print_function
 import numpy as np
 from My_devol import MyDEvol, MyGenomeHandler
-from My_devol.my_genome_handler import fbeta_keras
+from My_devol.my_genome_handler import fbeta_keras,INIT_SEED
+
 from sklearn.metrics import fbeta_score, accuracy_score, precision_score, recall_score
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.models import load_model
+
+np.random.seed(INIT_SEED)
+import tensorflow as tf
+tf.reset_default_graph()
+tf.set_random_seed(INIT_SEED)
+
 
 def get_best_threshold(y_val_proba, y_validation, y_train_proba, y_train):
     best_threshold = 0.5
@@ -56,6 +63,8 @@ def devol_train_final_model(model, dataset_dict,EarlyStopping_patience=6):
         ]
     }
 
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
     model.fit(**fit_params)
 
     y_val_proba = model.predict_proba(dataset_dict["X_validation"])
@@ -145,18 +154,8 @@ def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patienc
 
 
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
-    # TODO: Delete after stableize
-    generations=1
-    population=4
-
 
     num_of_s = 300000
-    # dataset_dict['X_train'] = dataset_dict['X_train'][:num_of_s, :]
-    # dataset_dict['y_train'] = dataset_dict['y_train'][:num_of_s, :]
-    # dataset_dict['X_validation'] = dataset_dict['X_validation'][:num_of_s, :]
-    # dataset_dict['y_validation'] = dataset_dict['y_validation'][:num_of_s, :]
-    # dataset_dict['X_test'] = dataset_dict['X_test'][:num_of_s, :]
-    ## TODO: until this part..
 
     split_dim = dataset_dict['X_train'].shape[1] / 4
 

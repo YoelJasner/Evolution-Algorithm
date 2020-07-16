@@ -12,6 +12,7 @@ INIT_SEED = 245
 rand.seed(INIT_SEED,2)
 np.random.seed(INIT_SEED)
 import tensorflow as tf
+tf.reset_default_graph()
 tf.set_random_seed(INIT_SEED)
 # Constant the randomized
 
