@@ -19,10 +19,19 @@ from tensorflow.keras.models import load_model
 import tensorflow.keras.backend as K
 from sklearn.metrics import log_loss
 import numpy as np
-from My_devol.my_genome_handler import fbeta_keras
+from My_devol.my_genome_handler import fbeta_keras,INIT_SEED
+
+# Constant the randomized
+rand.seed(INIT_SEED,2)
+np.random.seed(INIT_SEED)
+import tensorflow as tf
+tf.set_random_seed(INIT_SEED)
+# Constant the randomized
+
 
 if K.backend() == 'tensorflow':
     import tensorflow as tf
+    tf.set_random_seed(INIT_SEED)
     # tf.compat.v1.disable_eager_execution()
     # sess2 = tf.v1.compat.v1Session()
     # K.set_session(sess2)

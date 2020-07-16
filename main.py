@@ -136,19 +136,16 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_train = np.concatenate((X_train,
                               X_train_std,X_train_var,
                               X_train_mean,X_train_median,
-                              #X_train_argmax, X_train_argmin,
                               X_train_avg, X_train_avg_2,
                               X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation,
                               X_validation_std,X_validation_var,
                               X_validation_mean, X_validation_median,
-                              #X_validation_argmax, X_validation_argmin,
                               X_validation_avg, X_validation_avg_2,
                               X_validation_min, X_validation_max), axis=1)
     X_test = np.concatenate((X_test,
                                    X_test_std, X_test_var,
                                    X_test_mean, X_test_median,
-                                   #X_test_argmax, X_test_argmin,
                                    X_test_avg, X_test_avg_2,
                                    X_test_min, X_test_max), axis=1)
 

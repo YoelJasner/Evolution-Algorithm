@@ -6,6 +6,16 @@ from keras.layers import Activation, Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D,Convolution1D,MaxPooling1D
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
+
+# Constant the randomized
+INIT_SEED = 245
+rand.seed(INIT_SEED,2)
+np.random.seed(INIT_SEED)
+import tensorflow as tf
+tf.set_random_seed(INIT_SEED)
+# Constant the randomized
+
+
 kernel_size = 2
 STRIDE = 2
 MAX_POOLING_SIZE=2
