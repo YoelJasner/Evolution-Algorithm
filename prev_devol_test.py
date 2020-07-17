@@ -34,7 +34,8 @@ def feature_extraction(X_train, X_validation, X_test):
     return X_train, X_validation, X_test
 
 
-def pre_process_data(X_train, X_validation, X_test, scaler_type, feature_extract=True, log_scale=True ):
+def pre_process_data(X_train, X_validation, X_test,
+                     scaler_type, feature_extract=True, log_scale=True):
 
     if log_scale:
         X_train = np.log10(X_train)

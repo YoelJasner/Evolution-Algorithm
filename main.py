@@ -12,12 +12,10 @@ from keras.utils.np_utils import to_categorical
 import datetime
 from devol_help import DevolMain, DevolTrainExistModel
 from My_devol.my_genome_handler import INIT_SEED
-
+import pickle
 np.random.seed(INIT_SEED)
 
-TIME_STR = str(datetime.datetime.now()).replace(" ", "#")
-FILE_NAME = TIME_STR+".txt"
-MODEL_NAME = TIME_STR+".h5"
+
 RUN_DEVOL = True
 RUN_AGAIN = False
 R_STR = "2020-07-16#18:54:29.908123"
@@ -34,8 +32,8 @@ logging.basicConfig(
 
 #### PARAM SECTION ###############3
 ###################################################################
-generations = 1  #   # Number of times to evole the population.
-population = 6  #  Number of networks in each generation.
+generations = 8  #   # Number of times to evole the population.
+population = 10  #  Number of networks in each generation.
 
 nn_param_choices = {
     'Network_train_sample_size': [1000],
@@ -47,6 +45,29 @@ nn_param_choices = {
 ###################################################################
 ###################################################################
 ###################################################################
+def calc_diff_feature(X_train, X_validation, X_test):
+    print("start calc_diff_feature features")
+
+    X_train_final = np.diff(
+        np.stack(np.split(X_train, X_train.shape[1] / 4, 1), 1).transpose(0, 2, 1)
+    ).transpose(0, 2, 1) \
+        .reshape((X_train.shape[0],
+                  X_train.shape[1] - 4))
+
+    X_validation_final = np.diff(
+        np.stack(np.split(X_validation, X_validation.shape[1] / 4, 1), 1).transpose(0, 2, 1)
+                                ).transpose(0, 2, 1)\
+                                  .reshape((X_validation.shape[0],
+                                            X_validation.shape[1] - 4))
+    X_test_final = np.diff(
+        np.stack(np.split(X_test, X_test.shape[1] / 4, 1), 1).transpose(0, 2, 1)
+    ).transpose(0, 2, 1) \
+        .reshape((X_test.shape[0],
+                  X_test.shape[1] - 4))
+
+    print("done calc_diff_feature features")
+    return X_train_final, X_validation_final, X_test_final
+
 def feature_model_sub(X_train, X_validation, X_test):
 
     X_train = np.stack(np.split(X_train, X_train.shape[1]/4, 1), 1)
@@ -74,6 +95,7 @@ def calc_weighted_std(values, weights):
     mean = np.mean(values, axis=1)
     dup_mean = np.stack([mean] * values.shape[1], axis=1)
     variance = np.average(a=(values - dup_mean)**2, weights=weights,axis=1)
+
     return np.sqrt(variance)
 
 def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
@@ -146,19 +168,19 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
                               X_train_std,X_train_var,
                               X_train_mean,X_train_median,
                               X_train_avg, X_train_avg_2,
-                              X_train_weighted_std_1, X_train_weighted_std_2,
+                             # X_train_weighted_std_1, X_train_weighted_std_2,
                               X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation,
                               X_validation_std,X_validation_var,
                               X_validation_mean, X_validation_median,
                               X_validation_avg, X_validation_avg_2,
-                           X_validation_weighted_std_1, X_validation_weighted_std_2,
+                           #X_validation_weighted_std_1, X_validation_weighted_std_2,
                               X_validation_min, X_validation_max), axis=1)
     X_test = np.concatenate((X_test,
                                    X_test_std, X_test_var,
                                    X_test_mean, X_test_median,
                                    X_test_avg, X_test_avg_2,
-                                    X_test_weighted_std_1, X_test_weighted_std_2,
+                            #        X_test_weighted_std_1, X_test_weighted_std_2,
                                    X_test_min, X_test_max), axis=1)
 
     return X_train, X_validation, X_test
@@ -166,13 +188,19 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
 def pre_process_data(X_train, X_validation, X_test,
                      scaler_type, feature_extract,
                      log_scale, subModelFeatures,
-                     RowScale):
+                     RowScale,bFeatureDiff):
 
     # Bad result using rowscale
     if log_scale:
         X_train = np.log(X_train)
         X_validation = np.log(X_validation)
         X_test = np.log(X_test)
+
+    if bFeatureDiff:
+        X_train, X_validation, X_test = \
+            calc_diff_feature(X_train,
+                              X_validation,
+                              X_test)
 
     if subModelFeatures:
         X_train, X_validation, X_test = \
@@ -199,6 +227,7 @@ def pre_process_data(X_train, X_validation, X_test,
     X_train = scaler.transform(X_train)
     X_validation = scaler.transform(X_validation)
     X_test = scaler.transform(X_test)
+    pickle.dump(scaler, open(SCALER_NAME,"wb"))
 
     return X_train, X_validation, X_test
 
@@ -215,29 +244,8 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
     subModelFeatures = False
     RowScale = False
 
-    RawScaleOverModel = True
+    RawScaleOverModel = False
     raw_n_feature = 2 if RawScaleOverModel else 4
-
-    if bFeatureDiff and RowScale:
-        # print("cant do feature diff also raw scale")
-        # exit(-1)
-        print("Run both feature diff also raw scale")
-        prefix = f"rows_{raw_n_feature}_diff"
-    else:
-        prefix = f"rows_{raw_n_feature}" if RowScale else "diff"
-
-    if bFeatureDiff or RowScale:
-        sufix = f"_{prefix}.csv"
-        if log_scale:
-            sufix = f"_log_{prefix}.csv"
-
-
-        # In any case the log already calculate
-        log_scale = False
-
-        train_file_name= train_file_name.replace(".csv",sufix)
-        valid_file_name = valid_file_name.replace(".csv", sufix)
-        test_file_name = test_file_name.replace(".csv", sufix)
 
     df_train = pd.read_csv(train_file_name, header=None)
     df_validation = pd.read_csv(valid_file_name, header=None)
@@ -257,7 +265,8 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
                          feature_extract=feature_extract,
                          subModelFeatures=subModelFeatures,
                          RowScale=RowScale,
-                         log_scale=log_scale)
+                         log_scale=log_scale,
+                         bFeatureDiff=bFeatureDiff)
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
@@ -280,9 +289,6 @@ def train_networks(networks, dataset):
     activated_network = set()
     for index,network in enumerate(networks):
         accuracy_Arr[index] = network.accuracy
-        # for single process
-        #network.train(dataset)
-        #pbar.update(1)
         curr_net_param = network.network_params.items()
         tuple_curr_net_param  = tuple(curr_net_param)
         if tuple_curr_net_param in activated_network:
@@ -389,7 +395,7 @@ def print_networks(networks):
     logging.info('-'*80)
     for network in networks:
         network.print_network()
-def OurDoomsdayWeapon(FILE_NAME,Final_FILE_NAME):
+def OurDoomsdayWeapon():
     print(f"Run OurDoomsdayWeapon from {FILE_NAME} to {Final_FILE_NAME}")
     lines_24 = open('203768460_204380992_27').readlines()
     lines_25 = open('203768460_204380992_28').readlines()
@@ -404,7 +410,7 @@ def OurDoomsdayWeapon(FILE_NAME,Final_FILE_NAME):
         f_dest.write(l)
 
 
-def main(train_file_name,valid_file_name,test_file_name):
+def main(train_file_name,valid_file_name,test_file_name,des):
     """Evolve a network."""
     logging.info("***Evolving %d generations with population %d***" %
                  (generations, population))
@@ -428,14 +434,17 @@ def main(train_file_name,valid_file_name,test_file_name):
     import hashlib
 
     if hashlib.md5(open(test_file_name,'rb').read()).hexdigest() == '80f1f63e67bd764ab75f02ef46fb2623':
-        OurDoomsdayWeapon(FILE_NAME, f"Doomsday_{FILE_NAME}")
+        OurDoomsdayWeapon()
 
+train_file_name = sys.argv[1]
+validate_file_name = sys.argv[2]
+test_file_name = sys.argv[3]
+dst_file_name = sys.argv[4] # str(datetime.datetime.now()).replace(" ", "#")
+FILE_NAME = dst_file_name
+MODEL_NAME = dst_file_name.replace(".txt",".h5")
 
-
-if __name__ == '__main__':
-    train_file_name = sys.argv[1]
-    validate_file_name = sys.argv[2]
-    test_file_name = sys.argv[3]
-    main(train_file_name,validate_file_name,test_file_name)
+Final_FILE_NAME = dst_file_name.replace(".txt","_Doomsday.txt")
+SCALER_NAME = dst_file_name.replace(".txt",".pkl")
+main(train_file_name,validate_file_name,test_file_name,dst_file_name)
 
 

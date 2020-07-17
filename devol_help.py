@@ -153,6 +153,31 @@ def DevolTrainExistModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patienc
     model.save(new_MODEL_NAME)
 
 
+
+def DevolRunFinalModel(dataset_dict,MODEL_NAME,FILE_NAME,EarlyStopping_patience):
+    ge = "@"*80
+
+    suffix = f"#pati-{EarlyStopping_patience}"
+    new_MODEL_NAME = MODEL_NAME.replace(".h5", f"{suffix}.h5")
+    new_FILE_NAME = FILE_NAME.replace(".txt", f"{suffix}.txt")
+
+    print(ge)
+    print(ge)
+    print(f"Run over exist's model {new_MODEL_NAME}")
+    print(ge)
+
+    split_dim = dataset_dict['X_train'].shape[1] / 4
+    dataset_dict['X_train'] = np.stack(np.split(dataset_dict['X_train'], split_dim , 1), 2)
+    dataset_dict['X_validation'] = np.stack(np.split(dataset_dict['X_validation'], split_dim, 1), 2)
+    dataset_dict['X_test'] = np.stack(np.split(dataset_dict['X_test'], split_dim, 1), 2)
+
+    print("Loading model {MODEL_NAME}")
+    model = load_model(MODEL_NAME, custom_objects={"fbeta_keras": fbeta_keras})
+    print(model.summary())
+    model,best_t = devol_train_final_model(model,dataset_dict)
+    WriteResToFile(model,best_t,dataset_dict,new_FILE_NAME)
+    model.save(new_MODEL_NAME)
+
 def DevolMain(dataset_dict,generations,population,MODEL_NAME,FILE_NAME):
 
     num_of_s = 300000
