@@ -363,8 +363,8 @@ def print_networks(networks):
         network.print_network()
 def OurDoomsdayWeapon(FILE_NAME,Final_FILE_NAME):
     print(f"Run OurDoomsdayWeapon from {FILE_NAME} to {Final_FILE_NAME}")
-    lines_24 = open('203768460_204380992_24').readlines()
-    lines_25 = open('203768460_204380992_25').readlines()
+    lines_24 = open('203768460_204380992_27').readlines()
+    lines_25 = open('203768460_204380992_28').readlines()
     lines_current = open(FILE_NAME).readlines()
     f_dest = open(Final_FILE_NAME, 'w')
 
