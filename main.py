@@ -34,7 +34,7 @@ logging.basicConfig(
 
 #### PARAM SECTION ###############3
 ###################################################################
-generations = 3  #   # Number of times to evole the population.
+generations = 1  #   # Number of times to evole the population.
 population = 6  #  Number of networks in each generation.
 
 nn_param_choices = {
@@ -63,6 +63,18 @@ def feature_model_sub(X_train, X_validation, X_test):
     X_test = X_test.transpose(0, 2, 1).reshape(X_test.shape[0],   X_test.shape[1] * X_test.shape[2])
 
     return X_train, X_validation, X_test
+
+def calc_weighted_std(values, weights):
+    """
+    Return the weighted average and standard deviation.
+
+    values, weights -- Numpy ndarrays with the same shape.
+    """
+    # Fast and numerically precise:
+    mean = np.mean(values, axis=1)
+    dup_mean = np.stack([mean] * values.shape[1], axis=1)
+    variance = np.average(a=(values - dup_mean)**2, weights=weights,axis=1)
+    return np.sqrt(variance)
 
 def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     n_f = 2 if subModelFeatures else 4
@@ -114,20 +126,39 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_validation_var = X_validation_std**2
     X_test_var = X_test_std**2
 
+    X_train_weighted_std_1 = calc_weighted_std(values=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff)
+    X_validation_weighted_std_1 = calc_weighted_std(values=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff)
+    X_test_weighted_std_1 = calc_weighted_std(values=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff)
+
+    X_train_weighted_std_2 = calc_weighted_std(values=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff_2)
+    X_validation_weighted_std_2 = calc_weighted_std(
+        values=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1),
+        weights=weight_coeff_2)
+    X_test_weighted_std_2 = calc_weighted_std(values=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1),
+                                             weights=weight_coeff_2)
+
+
     X_train = np.concatenate((X_train,
                               X_train_std,X_train_var,
                               X_train_mean,X_train_median,
                               X_train_avg, X_train_avg_2,
+                              X_train_weighted_std_1, X_train_weighted_std_2,
                               X_train_min, X_train_max), axis=1)
     X_validation = np.concatenate((X_validation,
                               X_validation_std,X_validation_var,
                               X_validation_mean, X_validation_median,
                               X_validation_avg, X_validation_avg_2,
+                           X_validation_weighted_std_1, X_validation_weighted_std_2,
                               X_validation_min, X_validation_max), axis=1)
     X_test = np.concatenate((X_test,
                                    X_test_std, X_test_var,
                                    X_test_mean, X_test_median,
                                    X_test_avg, X_test_avg_2,
+                                    X_test_weighted_std_1, X_test_weighted_std_2,
                                    X_test_min, X_test_max), axis=1)
 
     return X_train, X_validation, X_test
@@ -341,9 +372,6 @@ def generate(generations, population, nn_param_choices, dataset_dict):
     # Sort our final population.
     networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
 
-    # Print out the top 3 networks.
-    #print_networks(networks[:3])
-
     # Write the network to file
     if i == generations - 1:
         networks[0].train_final_net(dataset_dict)
@@ -398,6 +426,7 @@ def main(train_file_name,valid_file_name,test_file_name):
     else:
         DevolMain(dataset_dict,generations, population, MODEL_NAME,FILE_NAME)
     import hashlib
+
     if hashlib.md5(open(test_file_name,'rb').read()).hexdigest() == '80f1f63e67bd764ab75f02ef46fb2623':
         OurDoomsdayWeapon(FILE_NAME, f"Doomsday_{FILE_NAME}")
 
