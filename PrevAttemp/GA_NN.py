@@ -1,24 +1,36 @@
 """Entry point to evolving the neural network. Start here."""
+import logging
+from optimizer import Optimizer
+from tqdm import tqdm
 import sys
+import multiprocessing
+from ctypes import  c_double
 import numpy as np
 from sklearn import preprocessing
 import pandas as pd
-from devol_help import DevolMain, DevolTrainExistModel
-from My_devol.my_genome_handler import INIT_SEED
 import pickle
-np.random.seed(INIT_SEED)
 
 
-RUN_AGAIN = False
-R_STR = "2020-07-16#18:54:29.908123"
-R_FILE_NAME = R_STR+".txt"
-R_MODEL_NAME = R_STR+".h5"
+# Setup logging.
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%m/%d/%Y %I:%M:%S %p',
+    level=logging.DEBUG,
+    filename='log.txt'
+)
 
 #### PARAM SECTION ###############3
 ###################################################################
 generations = 8  #   # Number of times to evole the population.
 population = 10  #  Number of networks in each generation.
 
+nn_param_choices = {
+    'Network_train_sample_size': [1000],
+    'batch_size': [64],
+    'hidden_layer_sizes': [16],
+    'max_iter': [10],
+    'final_max_iter': [500],
+}
 ###################################################################
 ###################################################################
 ###################################################################
@@ -124,6 +136,21 @@ def feature_extraction(X_train, X_validation, X_test,subModelFeatures):
     X_train_var = X_train_std**2
     X_validation_var = X_validation_std**2
     X_test_var = X_test_std**2
+
+    X_train_weighted_std_1 = calc_weighted_std(values=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff)
+    X_validation_weighted_std_1 = calc_weighted_std(values=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff)
+    X_test_weighted_std_1 = calc_weighted_std(values=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff)
+
+    X_train_weighted_std_2 = calc_weighted_std(values=np.stack(np.split(X_train, X_train.shape[1] / n_f, 1), 1),
+                                              weights=weight_coeff_2)
+    X_validation_weighted_std_2 = calc_weighted_std(
+        values=np.stack(np.split(X_validation, X_validation.shape[1] / n_f, 1), 1),
+        weights=weight_coeff_2)
+    X_test_weighted_std_2 = calc_weighted_std(values=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1),
+                                             weights=weight_coeff_2)
 
 
     X_train = np.concatenate((X_train,
@@ -232,22 +259,137 @@ def load_process_data(train_file_name,valid_file_name,test_file_name):
 
     return X_train_scale, y_train, X_validation_scale, y_validation, X_test_scale
 
-def OurDoomsdayWeapon():
-    print(f"Run OurDoomsdayWeapon from {FILE_NAME} to {Final_FILE_NAME}")
-    lines_24 = open('203768460_204380992_27').readlines()
-    lines_25 = open('203768460_204380992_28').readlines()
-    lines_current = open(FILE_NAME).readlines()
-    f_dest = open(Final_FILE_NAME, 'w')
+def TrainNetworkMultiprocess(network,dataset,shared_array,index):
+    network.train(dataset)
+    shared_array[index] = network.accuracy
 
-    for d1, d2, d3 in zip(lines_24, lines_25, lines_current):
+def train_networks(networks, dataset):
+    """Train each network.
 
-        fBool = (int(d1) + int(d2) + int(d3)) > 1
+    Args:
+        networks (list): Current population of networks
+        dataset (str): Dataset to use for training/evaluating
+    """
+    pbar = tqdm(total=len(networks))
+    accuracy_Arr = multiprocessing.Array(c_double, len(networks))
 
-        l = "1\n" if fBool else "0\n"
-        f_dest.write(l)
 
+    processes = []
+    activated_network = set()
+    for index,network in enumerate(networks):
+        accuracy_Arr[index] = network.accuracy
+        curr_net_param = network.network_params.items()
+        tuple_curr_net_param  = tuple(curr_net_param)
+        if tuple_curr_net_param in activated_network:
+            header_note = "#"*80
+            print(header_note)
+            print(header_note)
+            print(f"#### SKIP try to run an network that has already run {curr_net_param}")
+            print(header_note)
+            print(header_note)
+            pbar.update(1)
+            continue
+
+        activated_network.add(tuple_curr_net_param)
+        p = multiprocessing.Process(target=TrainNetworkMultiprocess,
+                                    args=(network,dataset,accuracy_Arr,index))
+        processes.append(p)
+        p.start()
+
+    for process in processes:
+        process.join()
+        pbar.update(1)
+
+    pbar.close()
+
+    # Update the accuracy, from the shared memory array
+    for c_index, double_accur in enumerate(accuracy_Arr):
+        logging.info(f"***The net before Update accuracy {networks[c_index].accuracy}")
+        networks[c_index].accuracy = float(double_accur)
+        logging.info(f"***The net after Update accuracy {networks[c_index].accuracy}")
+
+
+
+def get_max_accuracy(networks):
+    return max(x.accuracy for x in networks)
+
+def get_average_accuracy(networks):
+    total_accuracy = 0
+    counted_net =0
+    for network in networks:
+        if network.accuracy != 0:
+            counted_net+=1
+        total_accuracy += network.accuracy
+    return total_accuracy / counted_net
+
+def generate(generations, population, nn_param_choices, dataset_dict):
+    """Generate a network with the genetic algorithm.
+
+    Args:
+        generations (int): Number of times to evole the population
+        population (int): Number of networks in each generation
+        nn_param_choices (dict): Parameter choices for networks
+        dataset (str): Dataset to use for training/evaluating
+
+    """
+    optimizer = Optimizer(nn_param_choices)
+    networks = optimizer.create_population(population)
+    # Evolve the generation.
+    for i in range(generations):
+        logging.info("***Doing generation %d of %d***" %
+                     (i + 1, generations))
+        print("***Doing generation %d of %d***" %
+                     (i + 1, generations))
+
+        # Train and get accuracy for networks.
+        train_networks(networks, dataset_dict)
+
+        # Get the average accuracy for this generation.
+        average_accuracy = get_average_accuracy(networks)
+        max_accuracy = get_max_accuracy(networks)
+
+        # Print out the average accuracy each generation.
+        logging.info("Generation average: %.2f%%" % (average_accuracy * 100))
+        logging.info("Generation max: %.2f%%" % (max_accuracy * 100))
+
+        logging.info('-'*80)
+        print("***generation %d of %d*** score" %
+              (i + 1, generations))
+        print("Generation average: %.2f%%" % (average_accuracy * 100))
+        print("Generation max: %.2f%%" % (max_accuracy * 100))
+        print('-' * 80)
+
+        # Evolve, except on the last iteration.
+        if i != generations - 1:
+            # Do the evolution.
+            networks = optimizer.evolve(networks)
+
+    # Sort our final population.
+    networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
+
+    # Write the network to file
+    if i == generations - 1:
+        networks[0].train_final_net(dataset_dict)
+        networks[0].WriteModelToFile()
+        networks[0].WriteResToFile(dataset_dict,FILE_NAME)
+
+
+def print_networks(networks):
+    """Print a list of networks.
+
+    Args:
+        networks (list): The population of networks
+
+    """
+    logging.info('-'*80)
+    for network in networks:
+        network.print_network()
 
 def main(train_file_name,valid_file_name,test_file_name,des):
+    """Evolve a network."""
+    logging.info("***Evolving %d generations with population %d***" %
+                 (generations, population))
+
     X_train, y_train, X_validation, y_validation, X_test = \
         load_process_data(train_file_name, valid_file_name, test_file_name)
 
@@ -258,22 +400,15 @@ def main(train_file_name,valid_file_name,test_file_name,des):
                     "X_test": X_test,
                     }
     print("finish preprocessing")
-    if RUN_AGAIN:
-        DevolTrainExistModel(dataset_dict, R_MODEL_NAME, R_FILE_NAME,10)
-    else:
-        DevolMain(dataset_dict,generations, population, MODEL_NAME,FILE_NAME)
-    import hashlib
-
-    if hashlib.md5(open(test_file_name,'rb').read()).hexdigest() == '80f1f63e67bd764ab75f02ef46fb2623':
-        OurDoomsdayWeapon()
+    generate(generations, population, nn_param_choices, dataset_dict)
 
 train_file_name = sys.argv[1]
 validate_file_name = sys.argv[2]
 test_file_name = sys.argv[3]
-dst_file_name = sys.argv[4]
+dst_file_name = sys.argv[4] # str(datetime.datetime.now()).replace(" ", "#")
 FILE_NAME = dst_file_name
 MODEL_NAME = dst_file_name.replace(".txt",".h5")
-
-Final_FILE_NAME = dst_file_name.replace(".txt","_Doomsday.txt")
 SCALER_NAME = dst_file_name.replace(".txt",".pkl")
 main(train_file_name,validate_file_name,test_file_name,dst_file_name)
+
+

@@ -1,19 +1,9 @@
 """Entry point to evolving the neural network. Start here."""
-import logging
-from optimizer import Optimizer
-from tqdm import tqdm
 import sys
-import multiprocessing
-from ctypes import  c_double
 import numpy as np
-from sklearn import preprocessing
 import pandas as pd
-from keras.utils.np_utils import to_categorical
-import datetime
-from devol_help import DevolMain, DevolTrainExistModel
 from My_devol.my_genome_handler import fbeta_keras,INIT_SEED
 from tensorflow.keras.models import load_model
-
 
 import pickle
 np.random.seed(INIT_SEED)
@@ -76,15 +66,10 @@ def feature_extraction(X_test):
 
     X_test_var = X_test_std**2
 
-    #X_test_weighted_std_1 = calc_weighted_std(values=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1),                                              weights=weight_coeff)
-
-    #X_test_weighted_std_2 = calc_weighted_std(values=np.stack(np.split(X_test, X_test.shape[1] / n_f, 1), 1),                                             weights=weight_coeff_2)
-
     X_test = np.concatenate((X_test,
                                    X_test_std, X_test_var,
                                    X_test_mean, X_test_median,
                                    X_test_avg, X_test_avg_2,
-                                    #X_test_weighted_std_1, X_test_weighted_std_2,
                                    X_test_min, X_test_max), axis=1)
 
     return X_test
